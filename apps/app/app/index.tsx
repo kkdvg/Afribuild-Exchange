@@ -1068,14 +1068,20 @@ export default function Home() {
                       <Text style={[s.settingsProfileBadgeText, { color: C.danger }]}>Déconnexion</Text>
                     </Pressable>
                   ) : (
-                    <Pressable
-                      onPress={() => setExpandedSetting(expandedSetting === 'auth' ? null : 'auth')}
-                      style={[s.settingsProfileBadge, { backgroundColor: C.greenLight }]}
-                    >
-                      <Text style={[s.settingsProfileBadgeText, { color: C.green }]}>
-                        {expandedSetting === 'auth' ? 'Fermer' : 'Connexion'}
-                      </Text>
-                    </Pressable>
+                    <View style={{ flexDirection: 'row', gap: 6 }}>
+                      <Pressable
+                        onPress={() => router.push('/login')}
+                        style={[s.settingsProfileBadge, { backgroundColor: C.greenLight }]}
+                      >
+                        <Text style={[s.settingsProfileBadgeText, { color: C.green }]}>Connexion</Text>
+                      </Pressable>
+                      <Pressable
+                        onPress={() => router.push('/register')}
+                        style={[s.settingsProfileBadge, { backgroundColor: C.pale, borderWidth: 1, borderColor: C.line }]}
+                      >
+                        <Text style={[s.settingsProfileBadgeText, { color: C.ink }]}>S'inscrire</Text>
+                      </Pressable>
+                    </View>
                   )}
                 </View>
 

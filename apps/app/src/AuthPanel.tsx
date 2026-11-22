@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ActivityIndicator, Platform, Pressable, Text, TextInput, View } from 'react-native';
+import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as SecureStore from 'expo-secure-store';
 import { styles as s, C } from './styles';
@@ -48,6 +49,7 @@ export async function loadToken(): Promise<string | null> {
 }
 
 export function AuthPanel({ onAuthenticated }: { onAuthenticated: (token: string) => void }) {
+  const router = useRouter();
   const { t } = useI18n();
   const [destination, setDestination] = useState('');
   const [code, setCode] = useState('');
@@ -204,6 +206,16 @@ export function AuthPanel({ onAuthenticated }: { onAuthenticated: (token: string
           {message}
         </Text>
       )}
+
+      <View style={{ borderTopWidth: 1, borderTopColor: C.line, marginTop: 14, paddingTop: 12, flexDirection: 'row', justifyContent: 'space-around' }}>
+        <Pressable onPress={() => router.push('/login')}>
+          <Text style={{ fontSize: 11, fontWeight: '700', color: C.green }}>Connexion par mot de passe</Text>
+        </Pressable>
+        <Text style={{ fontSize: 11, color: C.mutedLight }}>•</Text>
+        <Pressable onPress={() => router.push('/register')}>
+          <Text style={{ fontSize: 11, fontWeight: '700', color: C.green }}>Inscription (Nom, Prénom...)</Text>
+        </Pressable>
+      </View>
     </View>
   );
 }

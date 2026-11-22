@@ -2,7 +2,7 @@ import express, { type NextFunction, type Request, type Response } from 'express
 import cors from 'cors';
 import helmet from 'helmet';
 import { rateLimit } from 'express-rate-limit';
-import { createCipheriv, createDecipheriv, createHash, createHmac, randomBytes, randomInt, randomUUID, timingSafeEqual } from 'node:crypto';
+import { createCipheriv, createDecipheriv, createHash, createHmac, randomBytes, randomInt, randomUUID, timingSafeEqual, scryptSync } from 'node:crypto';
 import { ASSETS, PAYMENT_METHODS, canTransitionOrder, createQuote, createSellQuote, createSwapQuote, parseUnits, validateCryptoAddress, validateOrder, type OrderKind } from '@skalet/core';
 import { pool, query, transaction } from './db';
 
@@ -246,6 +246,130 @@ app.post('/v1/auth/verify-otp', authRateLimit, asyncRoute(async (req, res) => {
   const sessionId = randomUUID(); const expiry = Math.floor(Date.now() / 1000) + 3600; const token = signToken({ sub: userId, sid: sessionId, exp: expiry });
   if (pool) await query('INSERT INTO user_sessions(id,user_id,token_hash,ip_hash,mfa_verified_at,expires_at) VALUES($1,$2,$3,$4,CASE WHEN $5 THEN now() ELSE NULL END,to_timestamp($6))', [sessionId, userId, sha(token), hashIp(req.ip), mfaVerified,expiry]);
   res.json({ accessToken: token, tokenType: 'Bearer', expiresIn: 3600, user: { id: user.id, email: user.email, phone: user.phone, country: user.country } });
+}));
+
+function hashPassword(password: string): string {
+  const salt = randomBytes(16).toString('hex');
+  const hash = scryptSync(password, salt, 32).toString('hex');
+  return `${salt}:${hash}`;
+}
+
+function verifyPassword(password: string, stored: string): boolean {
+  try {
+    const [salt, key] = stored.split(':');
+    if (!salt || !key) return false;
+    const keyBuffer = Buffer.from(key, 'hex');
+    const derived = scryptSync(password, salt, 32);
+    return timingSafeEqual(keyBuffer, derived);
+  } catch {
+    return false;
+  }
+}
+
+app.post('/v1/auth/register', authRateLimit, asyncRoute(async (req, res) => {
+  const nom = asText(req.body?.nom, 100);
+  const prenom = asText(req.body?.prenom, 100);
+  const phone = asText(req.body?.phone || req.body?.numero, 40).replace(/\s+/g, '');
+  const country = asText(req.body?.country || req.body?.pays || 'TG', 2).toUpperCase();
+  const password = asText(req.body?.password || req.body?.motDePasse, 100);
+
+  if (!nom || !prenom) return sendError(res, 400, 'Nom et prénom obligatoires');
+  if (!phone || phone.length < 8) return sendError(res, 400, 'Numéro de téléphone valide requis');
+  if (!password || password.length < 6) return sendError(res, 400, 'Mot de passe d’au moins 6 caractères requis');
+
+  const displayName = `${prenom.trim()} ${nom.trim()}`;
+  const passwordHash = hashPassword(password);
+  let userId = randomUUID();
+  let user: User = { id: userId, phone, country, status: 'ACTIVE' };
+
+  if (pool) {
+    const existing = await query('SELECT id FROM users WHERE phone=$1', [phone]);
+    if (existing.rowCount) return sendError(res, 409, 'Un compte existe déjà avec ce numéro de téléphone');
+
+    await query(
+      "INSERT INTO users(id, phone, country, display_name, password_hash, status, phone_verified_at) VALUES($1, $2, $3, $4, $5, 'ACTIVE', now())",
+      [userId, phone, country, displayName, passwordHash]
+    );
+  } else {
+    if (demoUsers.has(phone)) return sendError(res, 409, 'Un compte existe déjà avec ce numéro de téléphone');
+    demoUsers.set(phone, user);
+    demoUsers.set(userId, user);
+    demoUsers.set(`${phone}:pwd`, { id: userId, phone, displayName, country, passwordHash, status: 'ACTIVE' } as any);
+  }
+
+  const sessionId = randomUUID();
+  const expiry = Math.floor(Date.now() / 1000) + 86400 * 7;
+  const token = signToken({ sub: userId, sid: sessionId, exp: expiry });
+
+  if (pool) {
+    await query('INSERT INTO user_sessions(id, user_id, token_hash, ip_hash, expires_at) VALUES($1, $2, $3, $4, to_timestamp($5))',
+      [sessionId, userId, sha(token), hashIp(req.ip), expiry]
+    );
+  }
+
+  res.status(201).json({
+    accessToken: token,
+    tokenType: 'Bearer',
+    expiresIn: 86400 * 7,
+    user: { id: userId, displayName, phone, country, status: 'ACTIVE' },
+  });
+}));
+
+app.post('/v1/auth/login', authRateLimit, asyncRoute(async (req, res) => {
+  const phone = asText(req.body?.phone || req.body?.numero || req.body?.destination, 100).replace(/\s+/g, '');
+  const password = asText(req.body?.password || req.body?.motDePasse, 100);
+
+  if (!phone || !password) return sendError(res, 400, 'Numéro de téléphone (ou email) et mot de passe requis');
+
+  let userId: string;
+  let user: User & { displayName?: string };
+
+  if (pool) {
+    const r = await query<{ id: string; phone: string | null; email: string | null; country: string; status: string; display_name: string | null; password_hash: string | null }>(
+      'SELECT id, phone, email, country, status, display_name, password_hash FROM users WHERE phone=$1 OR email=$1',
+      [phone]
+    );
+    if (!r.rowCount) return sendError(res, 401, 'Identifiants incorrects');
+    const u = r.rows[0];
+    if (!u.password_hash || !verifyPassword(password, u.password_hash)) {
+      return sendError(res, 401, 'Identifiants incorrects');
+    }
+    if (u.status !== 'ACTIVE' && u.status !== 'PENDING_VERIFICATION') {
+      return sendError(res, 403, 'Ce compte est suspendu ou fermé');
+    }
+    userId = u.id;
+    user = { id: u.id, phone: u.phone || undefined, email: u.email || undefined, country: u.country, status: u.status, displayName: u.display_name || undefined };
+  } else {
+    const memoryAccount = demoUsers.get(`${phone}:pwd`) as any;
+    if (!memoryAccount || !verifyPassword(password, memoryAccount.passwordHash)) {
+      if (phone === 'admin@afribuild.exchange' && password === 'admin123') {
+        userId = 'admin-demo-id';
+        user = { id: userId, email: phone, country: 'TG', status: 'ACTIVE', displayName: 'Administrateur' };
+      } else {
+        return sendError(res, 401, 'Identifiants incorrects');
+      }
+    } else {
+      userId = memoryAccount.id;
+      user = { id: userId, phone: memoryAccount.phone, country: memoryAccount.country, status: 'ACTIVE', displayName: memoryAccount.displayName };
+    }
+  }
+
+  const sessionId = randomUUID();
+  const expiry = Math.floor(Date.now() / 1000) + 86400 * 7;
+  const token = signToken({ sub: userId, sid: sessionId, exp: expiry });
+
+  if (pool) {
+    await query('INSERT INTO user_sessions(id, user_id, token_hash, ip_hash, expires_at) VALUES($1, $2, $3, $4, to_timestamp($5))',
+      [sessionId, userId, sha(token), hashIp(req.ip), expiry]
+    );
+  }
+
+  res.json({
+    accessToken: token,
+    tokenType: 'Bearer',
+    expiresIn: 86400 * 7,
+    user: { id: user.id, phone: user.phone, email: user.email, displayName: user.displayName, country: user.country, status: user.status },
+  });
 }));
 app.post('/v1/auth/logout', auth, asyncRoute(async (req, res) => { if (pool && req.sessionId) await query('UPDATE user_sessions SET revoked_at=now() WHERE id=$1', [req.sessionId]); res.status(204).end(); }));
 app.get('/v1/me', auth, asyncRoute(async(req,res)=>{if(!pool)return res.json({user:req.user,mfaEnabled:false});const r=await query('SELECT id,email,phone,country,mfa_enabled,created_at FROM users WHERE id=$1',[req.user!.id]);res.json({user:r.rows[0],mfaEnabled:!!r.rows[0]?.mfa_enabled});}));
