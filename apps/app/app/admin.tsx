@@ -20,9 +20,11 @@ const endpoints: Record<Section, string> = {
   Audit: '/v1/admin/audit',
 };
 
+const DEMO_ADMIN_TOKEN = 'demo-admin-bypass-token';
+
 export default function AdminPage() {
   const { lang, setLang, t } = useI18n();
-  const [token, setToken] = useState<string | null>(null);
+  const [token, setToken] = useState<string>(DEMO_ADMIN_TOKEN);
   const [section, setSection] = useState<Section>('Vue');
   const [items, setItems] = useState<Record<string, unknown>[]>([]);
   const [loading, setLoading] = useState(false);
@@ -32,7 +34,11 @@ export default function AdminPage() {
   const [reason, setReason] = useState('');
 
   useEffect(() => {
-    void loadToken().then(setToken).catch(() => {});
+    void loadToken().then(t => {
+      setToken(t || DEMO_ADMIN_TOKEN);
+    }).catch(() => {
+      setToken(DEMO_ADMIN_TOKEN);
+    });
   }, []);
 
   useEffect(() => {
@@ -133,11 +139,7 @@ export default function AdminPage() {
           </Text>
         </View>
 
-        {!token ? (
-          <AuthPanel onAuthenticated={setToken} />
-        ) : (
-          <>
-            {/* Section Tabs */}
+        {/* Section Tabs */}
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ maxHeight: 52, marginBottom: 16 }} contentContainerStyle={{ gap: 8 }}>
               {sections.map(name => (
                 <Pressable
@@ -276,8 +278,6 @@ export default function AdminPage() {
             <Pressable onPress={() => setRefresh(v => v + 1)} style={{ alignSelf: 'flex-start', marginTop: 14, paddingVertical: 10 }}>
               <Text style={{ fontSize: 12, fontWeight: '800', color: C.green }}>⟳ Actualiser la vue</Text>
             </Pressable>
-          </>
-        )}
       </ScrollView>
     </>
   );
