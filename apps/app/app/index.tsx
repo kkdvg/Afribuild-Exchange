@@ -59,17 +59,26 @@ export default function Home() {
   const [selectedOrder, setSelectedOrder] = useState<Record<string, any> | null>(null);
   const [activityFilter, setActivityFilter] = useState<'all' | 'buy' | 'sell' | 'swap'>('all');
 
+  // Settings Modals
+  const [authModalVisible, setAuthModalVisible] = useState(false);
+  const [supportModalVisible, setSupportModalVisible] = useState(false);
+  const [mfaModalVisible, setMfaModalVisible] = useState(false);
+  const [kycModalVisible, setKycModalVisible] = useState(false);
+
   // Support
   const [ticketCategory, setTicketCategory] = useState('GENERAL');
   const [ticketMessage, setTicketMessage] = useState('');
   const [ticketNotice, setTicketNotice] = useState('');
+  const [ticketBusy, setTicketBusy] = useState(false);
 
   // Account & Security
   const [kycStatus, setKycStatus] = useState('NOT_SUBMITTED');
+  const [kycBusy, setKycBusy] = useState(false);
   const [mfaEnabled, setMfaEnabled] = useState(false);
   const [mfaSecret, setMfaSecret] = useState('');
   const [mfaCode, setMfaCode] = useState('');
   const [mfaNotice, setMfaNotice] = useState('');
+  const [mfaBusy, setMfaBusy] = useState(false);
 
   const idempotencyKey = useRef<string | null>(null);
   const quoteAttempt = useRef<{ id?: string; expiresAt?: string } | null>(null);
@@ -352,11 +361,8 @@ export default function Home() {
               ))}
 
               <View style={s.sideBottom}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <Ionicons name="shield-checkmark" size={15} color={C.green} />
-                  <Text style={s.sideCaption}>{t.secureSpace}</Text>
-                </View>
-                <Text style={s.sideNote}>{t.secureSpaceDesc}</Text>
+                <Text style={s.sideCaption}>NON-CUSTODIAL</Text>
+                <Text style={s.sideNote}>Afribuild-Exchange transfère directement vos cryptos sur votre wallet externe.</Text>
               </View>
             </View>
           )}
@@ -385,13 +391,9 @@ export default function Home() {
                     : tab === 'Échanger'
                     ? t.tradeDesc
                     : tab === 'Activité'
-                    ? t.indicativePrices
-                    : 'Profil, sécurité, assistance & préférences'}
+                    ? 'Historique et statut de vos opérations'
+                    : 'Gérez votre profil, sécurité, assistance & préférences'}
                 </Text>
-              </View>
-              <View style={s.secureBadge}>
-                <Ionicons name="shield-checkmark" size={15} color={C.green} />
-                <Text style={s.secureText}>{t.secureMode}</Text>
               </View>
             </View>
 
@@ -896,19 +898,21 @@ export default function Home() {
                     )}
 
                     {authRequired && !token && (
-                      <AuthPanel
-                        onAuthenticated={tkn => {
-                          setToken(tkn);
-                          setAuthRequired(false);
-                        }}
-                      />
+                      <View style={{ marginTop: 12 }}>
+                        <AuthPanel
+                          onAuthenticated={tkn => {
+                            setToken(tkn);
+                            setAuthRequired(false);
+                          }}
+                        />
+                      </View>
                     )}
                   </View>
                 </View>
               </View>
             )}
 
-            {/* TAB: ACTIVITÉ */}
+            {/* TAB: ACTIVITÉ (Pure Transaction List - No intrusive auth form) */}
             {tab === 'Activité' && (
               <>
                 {/* Filter Chips */}
@@ -993,180 +997,150 @@ export default function Home() {
                     </Pressable>
                   </View>
                 )}
-
-                {!token && (
-                  <AuthPanel
-                    onAuthenticated={tkn => {
-                      setToken(tkn);
-                    }}
-                  />
-                )}
               </>
             )}
 
-            {/* TAB: PARAMÈTRES (Settings Hub with Profile, Security, Support, Language, Team) */}
+            {/* TAB: PARAMÈTRES (Elegant, High-End FinTech Design) */}
             {tab === 'Paramètres' && (
               <View>
-                {/* 1. Account / Profile */}
-                <View style={s.settingsSection}>
-                  <Text style={s.settingsSectionTitle}>Profil & Compte</Text>
-                  <View style={s.settingsCard}>
-                    <View style={s.settingsRow}>
-                      <View style={[s.settingsIconBox, { backgroundColor: C.greenLight }]}>
-                        <Ionicons name="person" size={16} color={C.green} />
-                      </View>
-                      <View style={s.settingsRowContent}>
-                        <Text style={s.settingsRowTitle}>Statut du compte</Text>
-                        <Text style={s.settingsRowDesc}>{token ? 'Authentifié via OTP / Session' : 'Invité non connecté'}</Text>
-                      </View>
-                      <Text style={[s.settingsRowValue, token ? { color: C.green } : {}]}>
-                        {token ? 'Connecté' : 'Invité'}
-                      </Text>
-                    </View>
-
-                    <View style={[s.settingsRow, s.settingsRowLast]}>
-                      <View style={[s.settingsIconBox, { backgroundColor: '#EFF6FF' }]}>
-                        <Ionicons name="globe-outline" size={16} color="#2563EB" />
-                      </View>
-                      <View style={s.settingsRowContent}>
-                        <Text style={s.settingsRowTitle}>Zone d’opération</Text>
-                        <Text style={s.settingsRowDesc}>UEMOA · Franc CFA (XOF)</Text>
-                      </View>
-                      <Text style={s.settingsRowValue}>Togo (TG)</Text>
-                    </View>
+                {/* 1. Profile Hero Card */}
+                <View style={s.settingsProfileCard}>
+                  <View style={s.settingsAvatar}>
+                    <Text style={s.settingsAvatarText}>{token ? '✓' : 'A'}</Text>
                   </View>
+                  <View style={s.settingsProfileInfo}>
+                    <Text style={s.settingsProfileName}>
+                      {token ? 'Utilisateur Afribuild' : 'Session Démonstration'}
+                    </Text>
+                    <Text style={s.settingsProfileSub}>
+                      {token ? 'Compte actif · Session vérifiée' : 'Mode démonstration'}
+                    </Text>
+                  </View>
+                  {token ? (
+                    <Pressable
+                      onPress={async () => {
+                        try {
+                          await fetch(`${API}/v1/auth/logout`, {
+                            method: 'POST',
+                            headers: { Authorization: `Bearer ${token}` },
+                          });
+                        } finally {
+                          await saveToken(null);
+                          setToken(null);
+                        }
+                      }}
+                      style={[s.settingsProfileBadge, { backgroundColor: '#FEE2E2' }]}
+                    >
+                      <Text style={[s.settingsProfileBadgeText, { color: C.danger }]}>Déconnexion</Text>
+                    </Pressable>
+                  ) : (
+                    <Pressable
+                      onPress={() => setAuthModalVisible(true)}
+                      style={[s.settingsProfileBadge, { backgroundColor: C.greenLight }]}
+                    >
+                      <Text style={[s.settingsProfileBadgeText, { color: C.green }]}>Se connecter</Text>
+                    </Pressable>
+                  )}
                 </View>
 
                 {/* 2. Security & Compliance */}
                 <View style={s.settingsSection}>
                   <Text style={s.settingsSectionTitle}>Sécurité & Conformité</Text>
                   <View style={s.settingsCard}>
-                    {/* KYC */}
-                    <View style={s.settingsRow}>
+                    {/* KYC Row */}
+                    <Pressable
+                      onPress={() => setKycModalVisible(true)}
+                      style={s.settingsRow}
+                    >
                       <View style={[s.settingsIconBox, { backgroundColor: '#FEF3C7' }]}>
-                        <Ionicons name="shield-outline" size={16} color="#D97706" />
+                        <Ionicons name="card-outline" size={17} color="#D97706" />
                       </View>
                       <View style={s.settingsRowContent}>
                         <Text style={s.settingsRowTitle}>Vérification d’identité (KYC)</Text>
-                        <Text style={s.settingsRowDesc}>Niveau 1 standard</Text>
+                        <Text style={s.settingsRowDesc}>Niveau 1 standard · Plafonds UEMOA</Text>
                       </View>
-                      <Text style={[s.settingsRowValue, kycStatus === 'VERIFIED' && { color: C.green }]}>
-                        {kycStatus}
-                      </Text>
-                    </View>
-
-                    {token && (
-                      <View style={{ paddingHorizontal: 14, paddingBottom: 10 }}>
-                        <Pressable
-                          onPress={async () => {
-                            try {
-                              const r = await fetch(`${API}/v1/kyc`, {
-                                method: 'POST',
-                                headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ country: 'TG' }),
-                              });
-                              const d = await r.json();
-                              setKycStatus(d.status || d.error || 'PENDING');
-                            } catch {
-                              setKycStatus('Erreur API');
-                            }
-                          }}
-                          style={[s.secondaryButton, { alignSelf: 'flex-start' }]}
+                      <View style={s.settingsRowRight}>
+                        <View
+                          style={[
+                            s.settingsTagPill,
+                            {
+                              backgroundColor:
+                                kycStatus === 'VERIFIED'
+                                  ? C.greenLight
+                                  : kycStatus === 'PENDING'
+                                  ? '#FEF3C7'
+                                  : '#F1F5F9',
+                            },
+                          ]}
                         >
-                          <Text style={s.secondaryButtonText}>{t.btnRequestKyc}</Text>
-                        </Pressable>
+                          <Text
+                            style={[
+                              s.settingsTagText,
+                              {
+                                color:
+                                  kycStatus === 'VERIFIED'
+                                    ? C.green
+                                    : kycStatus === 'PENDING'
+                                    ? '#D97706'
+                                    : C.muted,
+                              },
+                            ]}
+                          >
+                            {kycStatus === 'VERIFIED' ? 'Vérifié' : kycStatus === 'PENDING' ? 'En attente' : 'Standard'}
+                          </Text>
+                        </View>
+                        <Ionicons name="chevron-forward" size={16} color={C.mutedLight} />
                       </View>
-                    )}
+                    </Pressable>
 
-                    {/* 2FA / MFA */}
-                    <View style={s.settingsRow}>
+                    {/* 2FA Row */}
+                    <Pressable
+                      onPress={() => setMfaModalVisible(true)}
+                      style={[s.settingsRow, s.settingsRowLast]}
+                    >
                       <View style={[s.settingsIconBox, { backgroundColor: C.greenLight }]}>
-                        <Ionicons name="key-outline" size={16} color={C.green} />
+                        <Ionicons name="lock-closed-outline" size={17} color={C.green} />
                       </View>
                       <View style={s.settingsRowContent}>
-                        <Text style={s.settingsRowTitle}>Authentification 2FA / TOTP</Text>
-                        <Text style={s.settingsRowDesc}>Protection renforcée par Google Authenticator</Text>
+                        <Text style={s.settingsRowTitle}>Authentification 2FA (TOTP)</Text>
+                        <Text style={s.settingsRowDesc}>Google Authenticator / Twilio Authy</Text>
                       </View>
-                      <Text style={[s.settingsRowValue, mfaEnabled && { color: C.green }]}>
-                        {mfaEnabled ? 'Activée' : 'Désactivée'}
-                      </Text>
-                    </View>
-
-                    {token && !mfaEnabled && (
-                      <View style={{ paddingHorizontal: 14, paddingBottom: 14 }}>
-                        <Pressable
-                          onPress={async () => {
-                            try {
-                              const r = await fetch(`${API}/v1/me/mfa/enroll`, {
-                                method: 'POST',
-                                headers: { Authorization: `Bearer ${token}` },
-                              });
-                              const d = await r.json();
-                              if (!r.ok) throw new Error(d.error);
-                              setMfaSecret(d.secret);
-                              setMfaNotice(t.mfaNoticeSecret);
-                            } catch (e) {
-                              setMfaNotice(e instanceof Error ? e.message : 'Enrôlement impossible');
-                            }
-                          }}
-                          style={[s.secondaryButton, { alignSelf: 'flex-start' }]}
+                      <View style={s.settingsRowRight}>
+                        <View
+                          style={[
+                            s.settingsTagPill,
+                            {
+                              backgroundColor: mfaEnabled ? C.greenLight : '#F1F5F9',
+                            },
+                          ]}
                         >
-                          <Text style={s.secondaryButtonText}>{t.btnSetupMfa}</Text>
-                        </Pressable>
-
-                        {!!mfaSecret && (
-                          <View style={{ marginTop: 10 }}>
-                            <Text selectable style={s.mfaSecret}>
-                              {mfaSecret}
-                            </Text>
-                            <TextInput
-                              value={mfaCode}
-                              onChangeText={v => setMfaCode(v.replace(/\D/g, '').slice(0, 6))}
-                              keyboardType="number-pad"
-                              placeholder={t.mfaInputCode}
-                              placeholderTextColor={C.muted}
-                              style={s.authInput}
-                            />
-                            <Pressable
-                              onPress={async () => {
-                                try {
-                                  const r = await fetch(`${API}/v1/me/mfa/confirm`, {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                                    body: JSON.stringify({ code: mfaCode }),
-                                  });
-                                  const d = await r.json();
-                                  if (!r.ok) throw new Error(d.error);
-                                  setMfaEnabled(true);
-                                  setMfaSecret('');
-                                  setMfaNotice(d.message);
-                                } catch (e) {
-                                  setMfaNotice(e instanceof Error ? e.message : 'Code incorrect');
-                                }
-                              }}
-                              style={[s.primaryButton, s.quoteButton]}
-                            >
-                              <Text style={s.primaryButtonText}>{t.btnConfirmMfa}</Text>
-                            </Pressable>
-                          </View>
-                        )}
-                        {!!mfaNotice && <Text style={s.notice}>{mfaNotice}</Text>}
+                          <Text
+                            style={[
+                              s.settingsTagText,
+                              { color: mfaEnabled ? C.green : C.muted },
+                            ]}
+                          >
+                            {mfaEnabled ? 'Activée' : 'Désactivée'}
+                          </Text>
+                        </View>
+                        <Ionicons name="chevron-forward" size={16} color={C.mutedLight} />
                       </View>
-                    )}
+                    </Pressable>
                   </View>
                 </View>
 
-                {/* 3. Preferences & Language */}
+                {/* 3. Preferences */}
                 <View style={s.settingsSection}>
-                  <Text style={s.settingsSectionTitle}>Préférences & Langue</Text>
+                  <Text style={s.settingsSectionTitle}>Préférences & Région</Text>
                   <View style={s.settingsCard}>
-                    <View style={[s.settingsRow, s.settingsRowLast]}>
+                    {/* Language Row */}
+                    <View style={s.settingsRow}>
                       <View style={[s.settingsIconBox, { backgroundColor: '#F3E8FF' }]}>
-                        <Ionicons name="language-outline" size={16} color="#7E22CE" />
+                        <Ionicons name="language-outline" size={17} color="#7E22CE" />
                       </View>
                       <View style={s.settingsRowContent}>
                         <Text style={s.settingsRowTitle}>{t.language}</Text>
-                        <Text style={s.settingsRowDesc}>Sélectionnez votre langue d'affichage</Text>
+                        <Text style={s.settingsRowDesc}>Langue de l'interface utilisateur</Text>
                       </View>
                       <View style={s.langSwitch}>
                         <Pressable
@@ -1183,137 +1157,92 @@ export default function Home() {
                         </Pressable>
                       </View>
                     </View>
+
+                    {/* Currency & Pilot Market */}
+                    <View style={[s.settingsRow, s.settingsRowLast]}>
+                      <View style={[s.settingsIconBox, { backgroundColor: '#EFF6FF' }]}>
+                        <Ionicons name="globe-outline" size={17} color="#2563EB" />
+                      </View>
+                      <View style={s.settingsRowContent}>
+                        <Text style={s.settingsRowTitle}>Zone Monétaire & Marché</Text>
+                        <Text style={s.settingsRowDesc}>UEMOA · Franc CFA (XOF)</Text>
+                      </View>
+                      <View style={s.settingsRowRight}>
+                        <Text style={s.settingsRowValue}>Togo (TG)</Text>
+                      </View>
+                    </View>
                   </View>
                 </View>
 
                 {/* 4. Support & Tickets */}
                 <View style={s.settingsSection}>
-                  <Text style={s.settingsSectionTitle}>{t.supportTitle}</Text>
+                  <Text style={s.settingsSectionTitle}>Assistance & Litiges</Text>
                   <View style={s.settingsCard}>
-                    <View style={s.settingsRow}>
-                      <View style={[s.settingsIconBox, { backgroundColor: C.greenLight }]}>
-                        <Ionicons name="help-buoy-outline" size={16} color={C.green} />
+                    <Pressable
+                      onPress={() => setSupportModalVisible(true)}
+                      style={[s.settingsRow, s.settingsRowLast]}
+                    >
+                      <View style={[s.settingsIconBox, { backgroundColor: '#CCFBF1' }]}>
+                        <Ionicons name="chatbubbles-outline" size={17} color="#0D9488" />
                       </View>
                       <View style={s.settingsRowContent}>
-                        <Text style={s.settingsRowTitle}>Support Client SLA 24/7</Text>
-                        <Text style={s.settingsRowDesc}>{t.supportSubtitle}</Text>
+                        <Text style={s.settingsRowTitle}>Centre d’assistance & Tickets</Text>
+                        <Text style={s.settingsRowDesc}>Équipe support SLA garantie 24/7</Text>
                       </View>
-                    </View>
-
-                    <View style={{ padding: 14 }}>
-                      <Text style={s.selectorLabel}>{t.supportCategory}</Text>
-                      <View style={s.chipGroup}>
-                        {[
-                          { id: 'GENERAL', label: t.supportCategoryGeneral },
-                          { id: 'PAYMENT', label: t.supportCategoryPayment },
-                          { id: 'BLOCKCHAIN', label: t.supportCategoryBlockchain },
-                          { id: 'KYC', label: t.supportCategoryKyc },
-                        ].map(cat => (
-                          <Pressable
-                            key={cat.id}
-                            onPress={() => setTicketCategory(cat.id)}
-                            style={[s.chip, ticketCategory === cat.id && s.chipSelected]}
-                          >
-                            <Text style={[s.chipText, ticketCategory === cat.id && s.chipTextSelected]}>
-                              {cat.label}
-                            </Text>
-                          </Pressable>
-                        ))}
+                      <View style={s.settingsRowRight}>
+                        <Text style={[s.settingsRowValue, { color: '#0D9488' }]}>Ouvrir</Text>
+                        <Ionicons name="chevron-forward" size={16} color={C.mutedLight} />
                       </View>
-
-                      <TextInput
-                        value={ticketMessage}
-                        onChangeText={setTicketMessage}
-                        multiline
-                        placeholder={t.supportMessagePlaceholder}
-                        placeholderTextColor={C.muted}
-                        style={s.supportInput}
-                      />
-
-                      <Pressable
-                        onPress={async () => {
-                          if (!token) {
-                            setAuthRequired(true);
-                            setTicketNotice('Connectez-vous pour contacter le support.');
-                            return;
-                          }
-                          try {
-                            const r = await fetch(`${API}/v1/support/tickets`, {
-                              method: 'POST',
-                              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                              body: JSON.stringify({ category: ticketCategory, message: ticketMessage }),
-                            });
-                            const d = await r.json();
-                            if (!r.ok) throw new Error(d.error);
-                            setTicketMessage('');
-                            setTicketNotice(`${t.ticketCreatedNotice} ${d.id}`);
-                          } catch (e) {
-                            setTicketNotice(e instanceof Error ? e.message : 'Erreur d’envoi');
-                          }
-                        }}
-                        style={[s.primaryButton, s.quoteButton]}
-                      >
-                        <Text style={s.primaryButtonText}>{t.btnCreateTicket}</Text>
-                        <Ionicons name="arrow-forward" size={18} color={C.limeDark} />
-                      </Pressable>
-
-                      {!!ticketNotice && <Text style={s.notice}>{ticketNotice}</Text>}
-                    </View>
+                    </Pressable>
                   </View>
                 </View>
 
-                {/* 5. Team Operations Portal */}
+                {/* 5. Team Portal (Admin) */}
                 <View style={s.settingsSection}>
-                  <Text style={s.settingsSectionTitle}>Espace Opérations & Équipe</Text>
+                  <Text style={s.settingsSectionTitle}>Espace Opérations</Text>
                   <View style={s.settingsCard}>
                     <Link href="/admin" asChild>
-                      <Pressable style={s.settingsRow}>
-                        <View style={[s.settingsIconBox, { backgroundColor: C.greenLight }]}>
-                          <Ionicons name="shield-checkmark" size={16} color={C.green} />
+                      <Pressable style={[s.settingsRow, s.settingsRowLast]}>
+                        <View style={[s.settingsIconBox, { backgroundColor: '#F0F9F5' }]}>
+                          <Ionicons name="shield-checkmark-outline" size={17} color={C.green} />
                         </View>
                         <View style={s.settingsRowContent}>
                           <Text style={s.settingsRowTitle}>{t.teamPortalLink}</Text>
                           <Text style={s.settingsRowDesc}>Supervision, réconciliation, ordres & audit</Text>
                         </View>
-                        <Ionicons name="chevron-forward" size={18} color={C.muted} />
+                        <View style={s.settingsRowRight}>
+                          <View style={[s.settingsTagPill, { backgroundColor: C.greenLight }]}>
+                            <Text style={[s.settingsTagText, { color: C.green }]}>Admin</Text>
+                          </View>
+                          <Ionicons name="chevron-forward" size={16} color={C.mutedLight} />
+                        </View>
                       </Pressable>
                     </Link>
                   </View>
                 </View>
 
-                {/* 6. Auth / Logout / Register */}
-                {token ? (
-                  <Pressable
-                    onPress={async () => {
-                      try {
-                        await fetch(`${API}/v1/auth/logout`, {
-                          method: 'POST',
-                          headers: { Authorization: `Bearer ${token}` },
-                        });
-                      } finally {
-                        await saveToken(null);
-                        setToken(null);
-                        setTab('Accueil');
-                      }
-                    }}
-                    style={[s.secondaryButton, { borderColor: '#FEE2E2', backgroundColor: '#FFF5F5', alignSelf: 'center', marginTop: 10 }]}
-                  >
-                    <Text style={[s.secondaryButtonText, { color: C.danger }]}>{t.btnLogout}</Text>
-                  </Pressable>
-                ) : (
-                  <View style={{ marginTop: 10 }}>
-                    <AuthPanel onAuthenticated={setToken} />
+                {/* 6. About */}
+                <View style={s.settingsSection}>
+                  <Text style={s.settingsSectionTitle}>Application</Text>
+                  <View style={s.settingsCard}>
+                    <View style={[s.settingsRow, s.settingsRowLast]}>
+                      <View style={[s.settingsIconBox, { backgroundColor: '#F1F5F9' }]}>
+                        <Ionicons name="information-circle-outline" size={17} color="#64748B" />
+                      </View>
+                      <View style={s.settingsRowContent}>
+                        <Text style={s.settingsRowTitle}>Afribuild-Exchange</Text>
+                        <Text style={s.settingsRowDesc}>Comptoir digital non-custodial UEMOA</Text>
+                      </View>
+                      <Text style={s.settingsRowValue}>v1.2.0</Text>
+                    </View>
                   </View>
-                )}
+                </View>
               </View>
             )}
 
             {/* Footer */}
             <View style={s.footer}>
-              <View style={s.footerLock}>
-                <Ionicons name="lock-closed" size={14} color={C.green} />
-                <Text style={s.footerText}>{t.secureSpaceDesc}</Text>
-              </View>
+              <Text style={s.footerText}>Afribuild-Exchange · Comptoir crypto non-custodial</Text>
 
               <View style={s.footerLinks}>
                 <Pressable onPress={() => setTab('Paramètres')}>
@@ -1349,6 +1278,308 @@ export default function Home() {
               </Pressable>
             ))}
           </View>
+        )}
+
+        {/* MODAL 1: AUTHENTICATION / LOGIN */}
+        {authModalVisible && (
+          <Modal transparent animationType="fade" visible={authModalVisible}>
+            <View style={s.modalOverlay}>
+              <View style={s.modalSheet}>
+                <View style={s.modalHeader}>
+                  <Text style={s.modalTitle}>Connexion</Text>
+                  <Pressable onPress={() => setAuthModalVisible(false)}>
+                    <Ionicons name="close-circle-outline" size={26} color={C.muted} />
+                  </Pressable>
+                </View>
+                <AuthPanel
+                  onAuthenticated={tkn => {
+                    setToken(tkn);
+                    setAuthModalVisible(false);
+                  }}
+                />
+              </View>
+            </View>
+          </Modal>
+        )}
+
+        {/* MODAL 2: KYC STATUS & VERIFICATION */}
+        {kycModalVisible && (
+          <Modal transparent animationType="fade" visible={kycModalVisible}>
+            <View style={s.modalOverlay}>
+              <View style={s.modalSheet}>
+                <View style={s.modalHeader}>
+                  <Text style={s.modalTitle}>Vérification d’identité (KYC)</Text>
+                  <Pressable onPress={() => setKycModalVisible(false)}>
+                    <Ionicons name="close-circle-outline" size={26} color={C.muted} />
+                  </Pressable>
+                </View>
+
+                <View style={s.quoteRow}>
+                  <Text style={s.quoteLabel}>Statut actuel</Text>
+                  <Text style={[s.quoteValue, kycStatus === 'VERIFIED' && { color: C.green }]}>
+                    {kycStatus === 'VERIFIED' ? 'Vérifié (Niveau 1)' : kycStatus === 'PENDING' ? 'En cours de revue' : 'Non vérifié'}
+                  </Text>
+                </View>
+                <View style={s.quoteRow}>
+                  <Text style={s.quoteLabel}>Région & Juridiction</Text>
+                  <Text style={s.quoteValue}>Togo (TG) · Zone UEMOA</Text>
+                </View>
+                <View style={s.quoteRow}>
+                  <Text style={s.quoteLabel}>Plafond journalier</Text>
+                  <Text style={s.quoteValue}>5 000 000 XOF</Text>
+                </View>
+
+                {token ? (
+                  <Pressable
+                    disabled={kycBusy}
+                    onPress={async () => {
+                      setKycBusy(true);
+                      try {
+                        const r = await fetch(`${API}/v1/kyc`, {
+                          method: 'POST',
+                          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ country: 'TG' }),
+                        });
+                        const d = await r.json();
+                        setKycStatus(d.status || d.error || 'PENDING');
+                      } catch {
+                        setKycStatus('Erreur');
+                      } finally {
+                        setKycBusy(false);
+                      }
+                    }}
+                    style={[s.primaryButton, s.quoteButton]}
+                  >
+                    {kycBusy ? (
+                      <ActivityIndicator color={C.limeDark} />
+                    ) : (
+                      <>
+                        <Text style={s.primaryButtonText}>{t.btnRequestKyc}</Text>
+                        <Ionicons name="arrow-forward" size={18} color={C.limeDark} />
+                      </>
+                    )}
+                  </Pressable>
+                ) : (
+                  <Pressable
+                    onPress={() => {
+                      setKycModalVisible(false);
+                      setAuthModalVisible(true);
+                    }}
+                    style={[s.primaryButton, s.quoteButton]}
+                  >
+                    <Text style={s.primaryButtonText}>Se connecter pour vérifier</Text>
+                  </Pressable>
+                )}
+              </View>
+            </View>
+          </Modal>
+        )}
+
+        {/* MODAL 3: 2FA SETUP & CONFIRMATION */}
+        {mfaModalVisible && (
+          <Modal transparent animationType="fade" visible={mfaModalVisible}>
+            <View style={s.modalOverlay}>
+              <View style={s.modalSheet}>
+                <View style={s.modalHeader}>
+                  <Text style={s.modalTitle}>Authentification 2FA (TOTP)</Text>
+                  <Pressable onPress={() => setMfaModalVisible(false)}>
+                    <Ionicons name="close-circle-outline" size={26} color={C.muted} />
+                  </Pressable>
+                </View>
+
+                {mfaEnabled ? (
+                  <View style={{ alignItems: 'center', paddingVertical: 14 }}>
+                    <Ionicons name="checkmark-circle" size={48} color={C.green} />
+                    <Text style={{ fontSize: 14, fontWeight: '800', color: C.ink, marginTop: 10 }}>
+                      Double authentification active
+                    </Text>
+                    <Text style={{ fontSize: 11, color: C.muted, textAlign: 'center', marginTop: 4 }}>
+                      Votre compte est protégé par Google Authenticator ou Twilio Authy.
+                    </Text>
+                  </View>
+                ) : token ? (
+                  <View>
+                    <Text style={{ fontSize: 11, color: C.muted, lineHeight: 16 }}>
+                      Activez la double authentification pour renforcer la sécurité de vos retraits et accès d'équipe.
+                    </Text>
+
+                    {!mfaSecret ? (
+                      <Pressable
+                        disabled={mfaBusy}
+                        onPress={async () => {
+                          setMfaBusy(true);
+                          setMfaNotice('');
+                          try {
+                            const r = await fetch(`${API}/v1/me/mfa/enroll`, {
+                              method: 'POST',
+                              headers: { Authorization: `Bearer ${token}` },
+                            });
+                            const d = await r.json();
+                            if (!r.ok) throw new Error(d.error);
+                            setMfaSecret(d.secret);
+                          } catch (e) {
+                            setMfaNotice(e instanceof Error ? e.message : 'Enrôlement impossible');
+                          } finally {
+                            setMfaBusy(false);
+                          }
+                        }}
+                        style={[s.primaryButton, s.quoteButton]}
+                      >
+                        {mfaBusy ? (
+                          <ActivityIndicator color={C.limeDark} />
+                        ) : (
+                          <>
+                            <Text style={s.primaryButtonText}>{t.btnSetupMfa}</Text>
+                            <Ionicons name="key" size={18} color={C.limeDark} />
+                          </>
+                        )}
+                      </Pressable>
+                    ) : (
+                      <View style={{ marginTop: 12 }}>
+                        <Text style={{ fontSize: 11, fontWeight: '700', color: C.ink }}>
+                          Secret à copier dans votre application TOTP :
+                        </Text>
+                        <Text selectable style={s.mfaSecret}>
+                          {mfaSecret}
+                        </Text>
+                        <TextInput
+                          value={mfaCode}
+                          onChangeText={v => setMfaCode(v.replace(/\D/g, '').slice(0, 6))}
+                          keyboardType="number-pad"
+                          placeholder={t.mfaInputCode}
+                          placeholderTextColor={C.muted}
+                          style={s.authInput}
+                        />
+                        <Pressable
+                          disabled={mfaBusy || mfaCode.length < 6}
+                          onPress={async () => {
+                            setMfaBusy(true);
+                            setMfaNotice('');
+                            try {
+                              const r = await fetch(`${API}/v1/me/mfa/confirm`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                                body: JSON.stringify({ code: mfaCode }),
+                              });
+                              const d = await r.json();
+                              if (!r.ok) throw new Error(d.error);
+                              setMfaEnabled(true);
+                              setMfaSecret('');
+                              setMfaModalVisible(false);
+                            } catch (e) {
+                              setMfaNotice(e instanceof Error ? e.message : 'Code incorrect');
+                            } finally {
+                              setMfaBusy(false);
+                            }
+                          }}
+                          style={[s.primaryButton, s.quoteButton, mfaCode.length < 6 && { opacity: 0.6 }]}
+                        >
+                          <Text style={s.primaryButtonText}>{t.btnConfirmMfa}</Text>
+                        </Pressable>
+                      </View>
+                    )}
+
+                    {!!mfaNotice && <Text style={s.notice}>{mfaNotice}</Text>}
+                  </View>
+                ) : (
+                  <Pressable
+                    onPress={() => {
+                      setMfaModalVisible(false);
+                      setAuthModalVisible(true);
+                    }}
+                    style={[s.primaryButton, s.quoteButton]}
+                  >
+                    <Text style={s.primaryButtonText}>Se connecter pour configurer la 2FA</Text>
+                  </Pressable>
+                )}
+              </View>
+            </View>
+          </Modal>
+        )}
+
+        {/* MODAL 4: SUPPORT TICKET */}
+        {supportModalVisible && (
+          <Modal transparent animationType="fade" visible={supportModalVisible}>
+            <View style={s.modalOverlay}>
+              <View style={s.modalSheet}>
+                <View style={s.modalHeader}>
+                  <Text style={s.modalTitle}>{t.supportTitle}</Text>
+                  <Pressable onPress={() => setSupportModalVisible(false)}>
+                    <Ionicons name="close-circle-outline" size={26} color={C.muted} />
+                  </Pressable>
+                </View>
+
+                <Text style={s.selectorLabel}>{t.supportCategory}</Text>
+                <View style={s.chipGroup}>
+                  {[
+                    { id: 'GENERAL', label: t.supportCategoryGeneral },
+                    { id: 'PAYMENT', label: t.supportCategoryPayment },
+                    { id: 'BLOCKCHAIN', label: t.supportCategoryBlockchain },
+                    { id: 'KYC', label: t.supportCategoryKyc },
+                  ].map(cat => (
+                    <Pressable
+                      key={cat.id}
+                      onPress={() => setTicketCategory(cat.id)}
+                      style={[s.chip, ticketCategory === cat.id && s.chipSelected]}
+                    >
+                      <Text style={[s.chipText, ticketCategory === cat.id && s.chipTextSelected]}>
+                        {cat.label}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+
+                <TextInput
+                  value={ticketMessage}
+                  onChangeText={setTicketMessage}
+                  multiline
+                  placeholder={t.supportMessagePlaceholder}
+                  placeholderTextColor={C.muted}
+                  style={s.supportInput}
+                />
+
+                <Pressable
+                  disabled={ticketBusy || !ticketMessage.trim()}
+                  onPress={async () => {
+                    if (!token) {
+                      setSupportModalVisible(false);
+                      setAuthModalVisible(true);
+                      return;
+                    }
+                    setTicketBusy(true);
+                    setTicketNotice('');
+                    try {
+                      const r = await fetch(`${API}/v1/support/tickets`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                        body: JSON.stringify({ category: ticketCategory, message: ticketMessage }),
+                      });
+                      const d = await r.json();
+                      if (!r.ok) throw new Error(d.error);
+                      setTicketMessage('');
+                      setTicketNotice(`${t.ticketCreatedNotice} ${d.id}`);
+                    } catch (e) {
+                      setTicketNotice(e instanceof Error ? e.message : 'Erreur d’envoi');
+                    } finally {
+                      setTicketBusy(false);
+                    }
+                  }}
+                  style={[s.primaryButton, s.quoteButton, !ticketMessage.trim() && { opacity: 0.6 }]}
+                >
+                  {ticketBusy ? (
+                    <ActivityIndicator color={C.limeDark} />
+                  ) : (
+                    <>
+                      <Text style={s.primaryButtonText}>{t.btnCreateTicket}</Text>
+                      <Ionicons name="arrow-forward" size={18} color={C.limeDark} />
+                    </>
+                  )}
+                </Pressable>
+
+                {!!ticketNotice && <Text style={s.notice}>{ticketNotice}</Text>}
+              </View>
+            </View>
+          </Modal>
         )}
 
         {/* Order Details & Receipt Modal */}

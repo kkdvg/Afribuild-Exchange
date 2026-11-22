@@ -521,14 +521,69 @@ export const styles = StyleSheet.create({
   disclaimer: { fontSize: 9, color: C.muted, textAlign: 'center', marginTop: 8, lineHeight: 13 },
   notice: { fontSize: 10, lineHeight: 14, color: C.green, textAlign: 'center', marginTop: 8, fontWeight: '700' },
 
-  // Settings Grouped Components
-  settingsSection: {
-    marginBottom: 18,
+  // Settings Grouped Components (Refined FinTech Style)
+  settingsProfileCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: C.line,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 6,
+    elevation: 2,
   },
-  settingsSectionTitle: {
+  settingsAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: C.greenLight,
+    borderWidth: 2,
+    borderColor: '#C3E6D8',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 14,
+  },
+  settingsAvatarText: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: C.green,
+  },
+  settingsProfileInfo: {
+    flex: 1,
+  },
+  settingsProfileName: {
+    fontSize: 15,
+    fontWeight: '900',
+    color: C.ink,
+  },
+  settingsProfileSub: {
+    fontSize: 11,
+    color: C.muted,
+    marginTop: 2,
+  },
+  settingsProfileBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    backgroundColor: C.pale,
+  },
+  settingsProfileBadgeText: {
     fontSize: 10,
     fontWeight: '800',
-    letterSpacing: 1,
+    color: C.greenDark,
+  },
+  settingsSection: {
+    marginBottom: 20,
+  },
+  settingsSectionTitle: {
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.8,
     color: C.muted,
     marginBottom: 8,
     paddingHorizontal: 4,
@@ -548,8 +603,8 @@ export const styles = StyleSheet.create({
   settingsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
     borderBottomWidth: 1,
     borderBottomColor: '#F0F5F2',
   },
@@ -557,9 +612,9 @@ export const styles = StyleSheet.create({
     borderBottomWidth: 0,
   },
   settingsIconBox: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
+    width: 34,
+    height: 34,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
@@ -573,15 +628,60 @@ export const styles = StyleSheet.create({
     color: C.ink,
   },
   settingsRowDesc: {
-    fontSize: 10,
+    fontSize: 11,
     color: C.muted,
-    marginTop: 1,
+    marginTop: 2,
+  },
+  settingsRowRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   settingsRowValue: {
     fontSize: 11,
     fontWeight: '700',
     color: C.muted,
-    marginRight: 4,
+  },
+  settingsTagPill: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  settingsTagText: {
+    fontSize: 10,
+    fontWeight: '800',
+  },
+
+  // Modal Sheet Components
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 16,
+  },
+  modalSheet: {
+    width: '100%',
+    maxWidth: 480,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 8,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 14,
+  },
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: C.ink,
   },
 
   // Auth Card

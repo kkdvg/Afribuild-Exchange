@@ -60,7 +60,7 @@ export function AuthPanel({ onAuthenticated }: { onAuthenticated: (token: string
   async function start() {
     if (!destination.trim()) return;
     setBusy(true);
-    setMessage('Connexion au serveur sécurisé...');
+    setMessage('Connexion au serveur...');
     try {
       const r = await fetch(`${API}/v1/auth/challenges`, {
         method: 'POST',
@@ -111,10 +111,10 @@ export function AuthPanel({ onAuthenticated }: { onAuthenticated: (token: string
   return (
     <View style={s.authCard}>
       <View style={s.authIcon}>
-        <Ionicons name="shield-checkmark" size={24} color={C.green} />
+        <Ionicons name="person-circle-outline" size={24} color={C.green} />
       </View>
       <Text style={s.authTitle}>
-        {mode === 'login' ? 'Connexion sécurisée' : 'Création de compte'}
+        {mode === 'login' ? 'Connexion' : 'Création de compte'}
       </Text>
       <Text style={s.authHint}>
         {sent ? `Code de vérification pour : ${destination}` : t.authPhoneOrEmail}
