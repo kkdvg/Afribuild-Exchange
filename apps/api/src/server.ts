@@ -82,6 +82,20 @@ function encryptMfaSecret(secret:string){const key=Buffer.from(process.env.MFA_E
 function decryptMfaSecret(value:string){const [ivHex,tagHex,dataHex]=value.split(':');const key=Buffer.from(process.env.MFA_ENCRYPTION_KEY||sha(jwtSecret).slice(0,64),'hex');const decipher=createDecipheriv('aes-256-gcm',key,Buffer.from(ivHex,'hex'));decipher.setAuthTag(Buffer.from(tagHex,'hex'));return Buffer.concat([decipher.update(Buffer.from(dataHex,'hex')),decipher.final()]).toString('utf8');}
 function verifyTotp(secret:string,code:string,now=Date.now()){if(!/^\d{6}$/.test(code))return false;const key=base32Decode(secret);for(const step of [-1,0,1]){const counter=BigInt(Math.floor(now/30_000)+step);const counterBytes=Buffer.alloc(8);counterBytes.writeBigUInt64BE(counter);const digest=createHmac('sha1',key).update(counterBytes).digest();const offset=digest[digest.length-1]&15;const value=((digest.readUInt32BE(offset)&0x7fffffff)%1_000_000).toString().padStart(6,'0');if(timingSafeEqual(Buffer.from(value),Buffer.from(code)))return true;}return false;}
 
+app.get('/', (_req, res) => {
+  res.json({
+    service: 'afribuild-exchange-api',
+    status: 'running',
+    version: '0.1.0',
+    documentation: '/health',
+    endpoints: {
+      health: '/health',
+      assets: '/v1/assets',
+      paymentMethods: '/v1/payment-methods',
+    },
+  });
+});
+
 app.get('/health', asyncRoute(async (_req, res) => {
   let database = 'demo-memory';
   if (pool) { await pool.query('SELECT 1'); database = 'connected'; }
