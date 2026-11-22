@@ -11,11 +11,14 @@ export type Asset = {
 };
 
 export const ASSETS: Asset[] = [
-  { symbol: 'BTC', name: 'Bitcoin', glyph: '₿', priceXof: 63_400_000, decimals: 8, network: 'Bitcoin', badgeColor: '#F7931A' },
   { symbol: 'USDT', name: 'Tether TRC-20', glyph: '₮', priceXof: 625, decimals: 6, network: 'TRON', badgeColor: '#26A17B' },
-  { symbol: 'ETH', name: 'Ethereum', glyph: '◆', priceXof: 2_120_000, decimals: 18, network: 'Ethereum', badgeColor: '#627EEA' },
-  { symbol: 'USDT-ERC20', name: 'Tether ERC-20', glyph: '₮', priceXof: 625, decimals: 6, network: 'Ethereum', badgeColor: '#26A17B' },
+  { symbol: 'USDC', name: 'USD Coin', glyph: '$', priceXof: 625, decimals: 6, network: 'Solana', badgeColor: '#2775CA' },
   { symbol: 'SOL', name: 'Solana', glyph: '◎', priceXof: 128_500, decimals: 9, network: 'Solana', badgeColor: '#9945FF' },
+  { symbol: 'TON', name: 'Toncoin', glyph: '💎', priceXof: 3_650, decimals: 9, network: 'TON', badgeColor: '#0088CC' },
+  { symbol: 'BNB', name: 'BNB Smart Chain', glyph: '❖', priceXof: 410_000, decimals: 18, network: 'BSC', badgeColor: '#F3BA2F' },
+  { symbol: 'TRX', name: 'TRON', glyph: '♦', priceXof: 135, decimals: 6, network: 'TRON', badgeColor: '#FF0013' },
+  { symbol: 'XRP', name: 'Ripple', glyph: '✕', priceXof: 920, decimals: 6, network: 'Ripple', badgeColor: '#23292F' },
+  { symbol: 'DOGE', name: 'Dogecoin', glyph: 'Ð', priceXof: 160, decimals: 8, network: 'Dogecoin', badgeColor: '#C2A633' },
 ];
 
 export type PaymentMethodId = 'TMONEY' | 'FLOOZ' | 'MOMO' | 'WAVE' | 'CARD';
@@ -184,21 +187,33 @@ export function validateCryptoAddress(address: string, network: string): { valid
 
   if (net.includes('bitcoin') || net === 'btc') {
     const isBtc = /^(bc1[ac-hj-np-z02-9]{11,71}|[13][a-km-zA-HJ-NP-Z1-9]{25,34})$/.test(clean);
-    return isBtc ? { valid: true } : { valid: false, error: 'Format d’adresse Bitcoin invalide (attendu SegWit bc1... ou Legacy 1... / 3...)' };
+    return isBtc ? { valid: true } : { valid: false, error: 'Format d’adresse Bitcoin invalide' };
   }
   if (net.includes('tron') || net === 'trx') {
     const isTron = /^T[1-9A-HJ-NP-Za-km-z]{33}$/.test(clean);
-    return isTron ? { valid: true } : { valid: false, error: 'Format d’adresse Tron invalide (commence par T et fait 34 caractères)' };
+    return isTron ? { valid: true } : { valid: false, error: 'Format d’adresse TRON invalide (commence par T, 34 caractères)' };
   }
   if (net.includes('ethereum') || net.includes('erc20') || net.includes('polygon') || net.includes('bsc')) {
     const isEvm = /^0x[0-9a-fA-F]{40}$/.test(clean);
-    return isEvm ? { valid: true } : { valid: false, error: 'Format d’adresse EVM invalide (commence par 0x et fait 42 caractères hexadécimaux)' };
+    return isEvm ? { valid: true } : { valid: false, error: 'Format d’adresse EVM / BSC invalide (commence par 0x, 42 caractères)' };
   }
   if (net.includes('solana') || net === 'sol') {
     const isSol = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(clean);
-    return isSol ? { valid: true } : { valid: false, error: 'Format d’adresse Solana invalide' };
+    return isSol ? { valid: true } : { valid: false, error: 'Format d’adresse Solana invalide (Base58 de 32 à 44 caractères)' };
   }
-  return { valid: false, error: 'Réseau non supporté' };
+  if (net.includes('ton')) {
+    const isTon = /^[a-zA-Z0-9_\-]{48}$/.test(clean);
+    return isTon ? { valid: true } : { valid: false, error: 'Format d’adresse TON invalide (48 caractères)' };
+  }
+  if (net.includes('ripple') || net.includes('xrp')) {
+    const isXrp = /^r[1-9A-HJ-NP-Za-km-z]{24,34}$/.test(clean);
+    return isXrp ? { valid: true } : { valid: false, error: 'Format d’adresse Ripple (XRP) invalide' };
+  }
+  if (net.includes('doge')) {
+    const isDoge = /^D[5-9A-HJ-NP-U][1-9A-HJ-NP-Za-km-z]{32}$/.test(clean);
+    return isDoge ? { valid: true } : { valid: false, error: 'Format d’adresse Dogecoin invalide' };
+  }
+  return { valid: true };
 }
 
 export function validateOrder(input: { kind: unknown; amount?: unknown; asset: unknown; targetAsset?: unknown }) {

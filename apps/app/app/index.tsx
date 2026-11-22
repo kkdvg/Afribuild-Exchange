@@ -423,7 +423,7 @@ export default function Home() {
                   <View style={s.heroArt}>
                     <View style={s.coinOuter}>
                       <View style={s.coinInner}>
-                        <Text style={s.coinB}>₿</Text>
+                        <Text style={s.coinB}>₮</Text>
                       </View>
                     </View>
                     <Text style={s.sparkOne}>✦</Text>
@@ -995,7 +995,7 @@ export default function Home() {
                       <View style={s.orderBody}>
                         <View>
                           <Text style={s.orderAsset}>
-                            {String(o.kind || 'Ordre').toUpperCase()} · {String(o.crypto_asset || o.asset || 'BTC')}
+                            {String(o.kind || 'Ordre').toUpperCase()} · {String(o.crypto_asset || o.asset || 'USDT')}
                             {o.target_asset ? ` → ${o.target_asset}` : ''}
                           </Text>
                           <Text style={s.orderAmount}>

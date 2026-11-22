@@ -394,7 +394,7 @@ app.post('/v1/orders', asyncRoute(async (req, res) => {
 
   // Adresse de dépôt dédiée pour le client (vente ou swap)
   const depositAddress = (kind === 'sell' || kind === 'swap')
-    ? (symbol === 'BTC' ? `bc1q${randomBytes(16).toString('hex')}` : `0x${randomBytes(20).toString('hex')}`)
+    ? (symbol === 'SOL' ? `${randomBytes(22).toString('hex')}` : symbol === 'TON' ? `UQ${randomBytes(22).toString('hex')}` : (symbol === 'USDT' || symbol === 'TRX') ? `T${randomBytes(16).toString('hex')}` : `0x${randomBytes(20).toString('hex')}`)
     : null;
 
   if (!pool) {
