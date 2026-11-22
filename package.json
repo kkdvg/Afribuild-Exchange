@@ -13,5 +13,8 @@
     "api:typecheck": "npm run typecheck --workspace @skalet/api",
     "migrate": "npm run migrate --workspace @skalet/api",
     "typecheck": "npm run typecheck --workspace @skalet/app && npm run typecheck --workspace @skalet/api"
+  },
+  "dependencies": {
+    "query-string": "^7.1.3"
   }
 }
