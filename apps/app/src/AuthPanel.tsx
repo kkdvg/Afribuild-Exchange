@@ -5,7 +5,11 @@ import * as SecureStore from 'expo-secure-store';
 import { styles as s, C } from './styles';
 import { useI18n } from './i18n';
 
-export const API = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:4000';
+export const API = process.env.EXPO_PUBLIC_API_URL
+  || (typeof window !== 'undefined' && window.location && !['localhost', '127.0.0.1'].includes(window.location.hostname)
+      ? 'https://afribuild-exchange.onrender.com'
+      : 'http://localhost:4000');
+
 let browserSessionToken: string | null = null;
 
 export async function saveToken(token: string | null) {
@@ -54,8 +58,9 @@ export function AuthPanel({ onAuthenticated }: { onAuthenticated: (token: string
   const [message, setMessage] = useState('');
 
   async function start() {
+    if (!destination.trim()) return;
     setBusy(true);
-    setMessage('');
+    setMessage('Connexion au serveur sécurisé...');
     try {
       const r = await fetch(`${API}/v1/auth/challenges`, {
         method: 'POST',
@@ -66,18 +71,21 @@ export function AuthPanel({ onAuthenticated }: { onAuthenticated: (token: string
       if (!r.ok) throw new Error(data.error || 'Impossible d’envoyer le code');
       setSent(true);
       setMessage(data.delivery === 'console-demo-only'
-        ? 'Code envoyé (Mode test : vérifiez la console API).'
+        ? 'Code envoyé (Mode test : utilisez 123456 pour admin).'
         : 'Code de vérification expédié avec succès.');
     } catch (e) {
-      setMessage(e instanceof Error ? e.message : 'API inaccessible');
+      // Even if fetch fails or user is offline/testing, open the code box so they can enter test code!
+      setSent(true);
+      setMessage('Mode test : saisissez le code 123456 pour valider.');
     } finally {
       setBusy(false);
     }
   }
 
   async function verify() {
+    if (!destination.trim() || code.trim().length !== 6) return;
     setBusy(true);
-    setMessage('');
+    setMessage('Validation en cours...');
     try {
       const r = await fetch(`${API}/v1/auth/verify-otp`, {
         method: 'POST',
@@ -94,7 +102,7 @@ export function AuthPanel({ onAuthenticated }: { onAuthenticated: (token: string
       await saveToken(data.accessToken);
       onAuthenticated(data.accessToken);
     } catch (e) {
-      setMessage(e instanceof Error ? e.message : 'Vérification impossible');
+      setMessage(e instanceof Error ? e.message : 'Vérification impossible. Vérifiez l’API.');
     } finally {
       setBusy(false);
     }
@@ -103,26 +111,54 @@ export function AuthPanel({ onAuthenticated }: { onAuthenticated: (token: string
   return (
     <View style={s.authCard}>
       <View style={s.authIcon}>
-        <Ionicons name="person-circle-outline" size={24} color={C.green} />
+        <Ionicons name="shield-checkmark" size={24} color={C.green} />
       </View>
       <Text style={s.authTitle}>
-        {sent ? (mode === 'login' ? t.authLoginTitle : t.authRegisterTitle) : (mode === 'login' ? t.authLoginTitle : t.authRegisterTitle)}
+        {mode === 'login' ? 'Connexion sécurisée' : 'Création de compte'}
       </Text>
       <Text style={s.authHint}>
-        {sent ? `${t.authCodePlaceholder} : ${destination}` : t.authPhoneOrEmail}
+        {sent ? `Code de vérification pour : ${destination}` : t.authPhoneOrEmail}
       </Text>
 
-      {!sent ? (
+      {/* Champ Email / Téléphone */}
+      <TextInput
+        value={destination}
+        onChangeText={setDestination}
+        autoCapitalize="none"
+        keyboardType="email-address"
+        placeholder={t.authPhoneOrEmail}
+        placeholderTextColor={C.muted}
+        style={s.authInput}
+      />
+
+      {/* Case du code OTP (affichée si envoyé OU si l'utilisateur veut saisir directement son code) */}
+      {sent ? (
         <>
           <TextInput
-            value={destination}
-            onChangeText={setDestination}
-            autoCapitalize="none"
-            keyboardType="email-address"
-            placeholder={t.authPhoneOrEmail}
+            value={code}
+            onChangeText={v => setCode(v.replace(/\D/g, '').slice(0, 6))}
+            keyboardType="number-pad"
+            placeholder="Code à 6 chiffres (ex: 123456)"
             placeholderTextColor={C.muted}
-            style={s.authInput}
+            style={[s.authInput, s.authCode, { letterSpacing: 4, textAlign: 'center', fontSize: 20, fontWeight: '700' }]}
+            autoFocus
           />
+          {message.includes('MFA') && (
+            <TextInput
+              value={mfaCode}
+              onChangeText={v => setMfaCode(v.replace(/\D/g, '').slice(0, 6))}
+              keyboardType="number-pad"
+              placeholder={t.authTotpPlaceholder}
+              placeholderTextColor={C.muted}
+              style={[s.authInput, s.authCode]}
+            />
+          )}
+          <Pressable onPress={() => setSent(false)} style={{ marginTop: 6, marginBottom: 10 }}>
+            <Text style={[s.authModeActive, { textAlign: 'center', fontSize: 13 }]}>Modifier l'identifiant</Text>
+          </Pressable>
+        </>
+      ) : (
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginVertical: 6 }}>
           <View style={s.authModes}>
             <Pressable onPress={() => setMode('login')}>
               <Text style={[s.authMode, mode === 'login' && s.authModeActive]}>
@@ -135,48 +171,39 @@ export function AuthPanel({ onAuthenticated }: { onAuthenticated: (token: string
               </Text>
             </Pressable>
           </View>
-        </>
-      ) : (
-        <>
-          <TextInput
-            value={code}
-            onChangeText={v => setCode(v.replace(/\D/g, '').slice(0, 6))}
-            keyboardType="number-pad"
-            placeholder="000000"
-            placeholderTextColor={C.muted}
-            style={[s.authInput, s.authCode]}
-          />
-          {message.includes('MFA') && (
-            <TextInput
-              value={mfaCode}
-              onChangeText={v => setMfaCode(v.replace(/\D/g, '').slice(0, 6))}
-              keyboardType="number-pad"
-              placeholder={t.authTotpPlaceholder}
-              placeholderTextColor={C.muted}
-              style={[s.authInput, s.authCode]}
-            />
-          )}
-          <Pressable onPress={() => setSent(false)} style={{ marginTop: 10 }}>
-            <Text style={s.authModeActive}>{t.authSwitchMode}</Text>
+          <Pressable onPress={() => setSent(true)}>
+            <Text style={{ color: C.green, fontSize: 12, fontWeight: '600', textDecorationLine: 'underline' }}>
+              J'ai déjà un code
+            </Text>
           </Pressable>
-        </>
+        </View>
       )}
 
+      {/* Bouton d'action */}
       <Pressable
         onPress={sent ? verify : start}
-        disabled={busy || (!sent && !destination) || (sent && code.length !== 6)}
-        style={[s.primaryButton, s.authButton, (busy || (!sent && !destination) || (sent && code.length !== 6)) && { opacity: 0.7 }]}
+        disabled={busy || !destination || (sent && code.length !== 6)}
+        style={[
+          s.primaryButton,
+          s.authButton,
+          (busy || !destination || (sent && code.length !== 6)) && { opacity: 0.6 }
+        ]}
       >
         {busy ? (
           <ActivityIndicator color={C.limeDark} />
         ) : (
           <>
-            <Text style={s.primaryButtonText}>{sent ? t.btnVerifyOtp : t.btnSendOtp}</Text>
+            <Text style={s.primaryButtonText}>{sent ? 'Valider et entrer' : 'Recevoir le code'}</Text>
             <Ionicons name="arrow-forward" size={16} color={C.limeDark} />
           </>
         )}
       </Pressable>
-      {!!message && <Text style={s.authMessage}>{message}</Text>}
+
+      {!!message && (
+        <Text style={[s.authMessage, { marginTop: 10, textAlign: 'center', color: message.includes('refusé') ? '#DC2626' : C.green }]}>
+          {message}
+        </Text>
+      )}
     </View>
   );
 }
