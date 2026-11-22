@@ -3,15 +3,15 @@ import { Platform, StyleSheet } from 'react-native';
 export const C = {
   // Brand & Emerald Spectrum
   green: '#0E5A44',
-  greenDark: '#073326',
-  greenDeep: '#031F17',
-  greenLight: '#E8F5F1',
+  greenDark: '#062A1F',
+  greenDeep: '#021812',
+  greenLight: '#E6F4EE',
   greenMint: '#10B981',
   greenMintLight: '#D1FAE5',
 
   // Modern High-Energy Accents
   lime: '#C5F82A',
-  limeDark: '#123824',
+  limeDark: '#0E3B26',
   gold: '#D97706',
   goldLight: '#FEF3C7',
   blue: '#2563EB',
@@ -19,14 +19,14 @@ export const C = {
   danger: '#EF4444',
   dangerLight: '#FEE2E2',
 
-  // Sleek Neutrals & Surfaces
-  ink: '#091E16',
-  inkLight: '#1E3A2F',
-  muted: '#5A6E65',
-  mutedLight: '#8EA198',
-  line: '#E2ECE7',
-  lineLight: '#EDF4F0',
-  pale: '#F4F7F5',
+  // Sleek Slate Neutrals & Surfaces
+  ink: '#0F172A',
+  inkLight: '#334155',
+  muted: '#64748B',
+  mutedLight: '#94A3B8',
+  line: '#E2E8F0',
+  lineLight: '#F1F5F9',
+  pale: '#F8FAFC',
   card: '#FFFFFF',
   surface: '#FFFFFF',
 };
@@ -736,6 +736,25 @@ export const styles = StyleSheet.create({
   settingsTagText: {
     fontSize: 10,
     fontWeight: '800',
+  },
+  settingsDrawer: {
+    backgroundColor: '#FAFCFB',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderTopWidth: 1,
+    borderTopColor: '#F0F5F2',
+  },
+  settingsDrawerTitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: C.ink,
+    marginBottom: 6,
+  },
+  settingsDrawerText: {
+    fontSize: 11,
+    color: C.muted,
+    lineHeight: 16,
+    marginBottom: 10,
   },
 
   // Modal Sheet Components
