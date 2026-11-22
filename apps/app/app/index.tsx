@@ -663,20 +663,29 @@ export default function Home() {
                       )}
 
                       {/* Asset / Currency Pill */}
-                      {kind === 'buy' ? (
-                        <View style={s.swapAssetPill}>
-                          <Text style={s.swapAssetSymbol}>XOF</Text>
-                          <Text style={{ fontSize: 10, color: C.muted, fontWeight: '700' }}>FCFA</Text>
-                        </View>
-                      ) : (
-                        <Pressable onPress={() => setAssetPickerTarget('source')} style={s.swapAssetPill}>
-                          <Text style={[s.swapAssetGlyph, { color: selectedAsset.badgeColor || C.green }]}>
-                            {selectedAsset.glyph}
-                          </Text>
-                          <Text style={s.swapAssetSymbol}>{selectedAsset.symbol}</Text>
-                          <Ionicons name="chevron-down" size={14} color={C.muted} />
-                        </Pressable>
-                      )}
+                      <Pressable
+                        onPress={() => setAssetPickerTarget('source')}
+                        hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                        style={s.swapAssetPill}
+                      >
+                        {kind === 'buy' ? (
+                          <>
+                            <View style={[s.assetIconSmall, { backgroundColor: C.greenLight }]}>
+                              <Text style={[s.swapAssetGlyph, { color: C.green, fontSize: 13 }]}>₣</Text>
+                            </View>
+                            <Text style={s.swapAssetSymbol}>XOF</Text>
+                            <Ionicons name="chevron-down" size={14} color={C.muted} />
+                          </>
+                        ) : (
+                          <>
+                            <Text style={[s.swapAssetGlyph, { color: selectedAsset.badgeColor || C.green }]}>
+                              {selectedAsset.glyph}
+                            </Text>
+                            <Text style={s.swapAssetSymbol}>{selectedAsset.symbol}</Text>
+                            <Ionicons name="chevron-down" size={14} color={C.muted} />
+                          </>
+                        )}
+                      </Pressable>
                     </View>
 
                     {/* Quick amounts row for fiat buy */}
@@ -748,28 +757,37 @@ export default function Home() {
                       </Text>
 
                       {/* Receive Asset Pill */}
-                      {kind === 'sell' ? (
-                        <View style={s.swapAssetPill}>
-                          <Text style={s.swapAssetSymbol}>XOF</Text>
-                          <Text style={{ fontSize: 10, color: C.muted, fontWeight: '700' }}>FCFA</Text>
-                        </View>
-                      ) : kind === 'buy' ? (
-                        <Pressable onPress={() => setAssetPickerTarget('source')} style={s.swapAssetPill}>
-                          <Text style={[s.swapAssetGlyph, { color: selectedAsset.badgeColor || C.green }]}>
-                            {selectedAsset.glyph}
-                          </Text>
-                          <Text style={s.swapAssetSymbol}>{selectedAsset.symbol}</Text>
-                          <Ionicons name="chevron-down" size={14} color={C.muted} />
-                        </Pressable>
-                      ) : (
-                        <Pressable onPress={() => setAssetPickerTarget('target')} style={s.swapAssetPill}>
-                          <Text style={[s.swapAssetGlyph, { color: targetAsset.badgeColor || C.green }]}>
-                            {targetAsset.glyph}
-                          </Text>
-                          <Text style={s.swapAssetSymbol}>{targetAsset.symbol}</Text>
-                          <Ionicons name="chevron-down" size={14} color={C.muted} />
-                        </Pressable>
-                      )}
+                      <Pressable
+                        onPress={() => setAssetPickerTarget('target')}
+                        hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                        style={s.swapAssetPill}
+                      >
+                        {kind === 'sell' ? (
+                          <>
+                            <View style={[s.assetIconSmall, { backgroundColor: C.greenLight }]}>
+                              <Text style={[s.swapAssetGlyph, { color: C.green, fontSize: 13 }]}>₣</Text>
+                            </View>
+                            <Text style={s.swapAssetSymbol}>XOF</Text>
+                            <Ionicons name="chevron-down" size={14} color={C.muted} />
+                          </>
+                        ) : kind === 'buy' ? (
+                          <>
+                            <Text style={[s.swapAssetGlyph, { color: selectedAsset.badgeColor || C.green }]}>
+                              {selectedAsset.glyph}
+                            </Text>
+                            <Text style={s.swapAssetSymbol}>{selectedAsset.symbol}</Text>
+                            <Ionicons name="chevron-down" size={14} color={C.muted} />
+                          </>
+                        ) : (
+                          <>
+                            <Text style={[s.swapAssetGlyph, { color: targetAsset.badgeColor || C.green }]}>
+                              {targetAsset.glyph}
+                            </Text>
+                            <Text style={s.swapAssetSymbol}>{targetAsset.symbol}</Text>
+                            <Ionicons name="chevron-down" size={14} color={C.muted} />
+                          </>
+                        )}
+                      </Pressable>
                     </View>
                   </View>
 
@@ -1536,31 +1554,112 @@ export default function Home() {
           </View>
         )}
 
-        {/* MODAL: ASSET PICKER */}
+        {/* MODAL: ASSET / CURRENCY PICKER */}
         {!!assetPickerTarget && (
-          <Modal transparent animationType="fade" visible={!!assetPickerTarget}>
-            <View style={s.modalOverlay}>
-              <View style={s.modalSheet}>
+          <Modal transparent animationType="fade" visible={!!assetPickerTarget} onRequestClose={() => setAssetPickerTarget(null)}>
+            <Pressable style={s.modalOverlay} onPress={() => setAssetPickerTarget(null)}>
+              <Pressable style={s.modalSheet} onPress={e => e.stopPropagation()}>
                 <View style={s.modalHeader}>
                   <Text style={s.modalTitle}>
-                    {assetPickerTarget === 'source' ? 'Choisir la crypto' : 'Choisir la crypto de destination'}
+                    {assetPickerTarget === 'source' ? 'Monnaie à envoyer / payer' : 'Monnaie à recevoir'}
                   </Text>
                   <Pressable onPress={() => setAssetPickerTarget(null)}>
                     <Ionicons name="close-circle-outline" size={26} color={C.muted} />
                   </Pressable>
                 </View>
 
+                {/* Option Franc CFA (XOF) */}
+                {(() => {
+                  const isCurrent =
+                    assetPickerTarget === 'source' ? kind === 'buy' : kind === 'sell';
+                  return (
+                    <Pressable
+                      onPress={() => {
+                        if (assetPickerTarget === 'source') {
+                          setKind('buy');
+                        } else {
+                          setKind('sell');
+                        }
+                        setAssetPickerTarget(null);
+                        quoteAttempt.current = null;
+                        idempotencyKey.current = null;
+                      }}
+                      style={[
+                        s.settingsRow,
+                        {
+                          paddingVertical: 12,
+                          backgroundColor: isCurrent ? C.greenLight : '#FFFFFF',
+                          borderRadius: 12,
+                          marginBottom: 8,
+                          borderBottomWidth: 0,
+                          borderWidth: 1,
+                          borderColor: isCurrent ? C.green : C.line,
+                        },
+                      ]}
+                    >
+                      <View style={[s.settingsIconBox, { backgroundColor: C.greenLight }]}>
+                        <Text style={[s.swapAssetGlyph, { color: C.green, fontSize: 16 }]}>₣</Text>
+                      </View>
+                      <View style={s.settingsRowContent}>
+                        <Text style={s.settingsRowTitle}>Franc CFA (XOF)</Text>
+                        <Text style={s.settingsRowDesc}>Mobile Money · T-Money / Flooz / MoMo / Wave</Text>
+                      </View>
+                      <Text style={{ fontSize: 12, fontWeight: '800', color: C.green }}>Monnaie Fiat</Text>
+                    </Pressable>
+                  );
+                })()}
+
+                {/* Divider Crypto */}
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 8 }}>
+                  <View style={{ flex: 1, height: 1, backgroundColor: C.line }} />
+                  <Text style={{ fontSize: 10, fontWeight: '800', color: C.muted, marginHorizontal: 8, textTransform: 'uppercase' }}>
+                    Crypto-Monnaies
+                  </Text>
+                  <View style={{ flex: 1, height: 1, backgroundColor: C.line }} />
+                </View>
+
+                {/* Crypto Assets */}
                 {ASSETS.map(asset => {
                   const isCurrent =
-                    (assetPickerTarget === 'source' ? selectedAsset.symbol : targetAsset.symbol) === asset.symbol;
+                    assetPickerTarget === 'source'
+                      ? kind !== 'buy' && selectedAsset.symbol === asset.symbol
+                      : kind === 'buy'
+                      ? selectedAsset.symbol === asset.symbol
+                      : kind === 'swap' && targetAsset.symbol === asset.symbol;
+
                   return (
                     <Pressable
                       key={asset.symbol}
                       onPress={() => {
                         if (assetPickerTarget === 'source') {
                           setSelectedAsset(asset);
+                          if (kind === 'buy') {
+                            setKind('swap');
+                            if (targetAsset.symbol === asset.symbol) {
+                              setTargetAsset(ASSETS.find(a => a.symbol !== asset.symbol) || ASSETS[1]);
+                            }
+                          } else if (kind === 'swap') {
+                            if (targetAsset.symbol === asset.symbol) {
+                              setTargetAsset(ASSETS.find(a => a.symbol !== asset.symbol) || ASSETS[1]);
+                            }
+                          }
                         } else {
-                          setTargetAsset(asset);
+                          // assetPickerTarget === 'target'
+                          if (kind === 'buy') {
+                            setSelectedAsset(asset);
+                          } else if (kind === 'sell') {
+                            setKind('swap');
+                            setTargetAsset(asset);
+                            if (selectedAsset.symbol === asset.symbol) {
+                              setSelectedAsset(ASSETS.find(a => a.symbol !== asset.symbol) || ASSETS[0]);
+                            }
+                          } else {
+                            // kind === 'swap'
+                            setTargetAsset(asset);
+                            if (selectedAsset.symbol === asset.symbol) {
+                              setSelectedAsset(ASSETS.find(a => a.symbol !== asset.symbol) || ASSETS[0]);
+                            }
+                          }
                         }
                         setAssetPickerTarget(null);
                         quoteAttempt.current = null;
@@ -1574,6 +1673,8 @@ export default function Home() {
                           borderRadius: 12,
                           marginBottom: 6,
                           borderBottomWidth: 0,
+                          borderWidth: 1,
+                          borderColor: isCurrent ? C.green : '#F1F5F9',
                         },
                       ]}
                     >
@@ -1590,8 +1691,8 @@ export default function Home() {
                     </Pressable>
                   );
                 })}
-              </View>
-            </View>
+              </Pressable>
+            </Pressable>
           </Modal>
         )}
 
