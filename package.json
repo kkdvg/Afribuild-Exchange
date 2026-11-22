@@ -10,6 +10,7 @@
     "android": "npm run android --workspace @skalet/app",
     "api": "npm run dev --workspace @skalet/api",
     "api:start": "npm run start --workspace @skalet/api",
+    "api:typecheck": "npm run typecheck --workspace @skalet/api",
     "migrate": "npm run migrate --workspace @skalet/api",
     "typecheck": "npm run typecheck --workspace @skalet/app && npm run typecheck --workspace @skalet/api"
   }
