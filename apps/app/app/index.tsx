@@ -237,6 +237,7 @@ export default function Home() {
             asset: selectedAsset.symbol,
             targetAsset: kind === 'swap' ? targetAsset.symbol : undefined,
             country: 'TG',
+            mode: 'live',
           }),
         });
         q = await qres.json();
@@ -263,7 +264,7 @@ export default function Home() {
           payoutPhone: kind === 'sell' ? payoutPhone : undefined,
           payoutName: kind === 'sell' ? payoutName : undefined,
           address: (kind === 'buy' || kind === 'swap') ? receiveAddress.trim() : undefined,
-          mode: 'demo',
+          mode: 'live',
           quoteId: q?.id,
           channel: telegram.inside ? 'telegram' : Platform.OS === 'web' ? 'web' : 'android',
         }),
@@ -282,7 +283,7 @@ export default function Home() {
       setSelectedOrder(data);
 
       setNotice({
-        text: `Ordre ${data.id.slice(0, 8)} créé avec succès en mode démonstration.`,
+        text: `Ordre ${String(data.id || '').slice(0, 8)} créé avec succès.`,
         type: 'success',
       });
     } catch (e) {
@@ -399,19 +400,15 @@ export default function Home() {
             {/* TAB: ACCUEIL */}
             {tab === 'home' && (
               <>
-                {/* Modern Revolut / FinTech Wallet Card */}
+                {/* Informative FinTech Hero */}
                 <View style={s.hero}>
                   <View style={s.heroCopy}>
                     <View style={s.livePill}>
                       <View style={s.liveDot} />
-                      <Text style={s.liveText}>PORTEFEUILLE ESTIMATIF · TOGO</Text>
+                      <Text style={s.liveText}>{t.heroBadge}</Text>
                     </View>
-                    <Text style={{ fontSize: 28, fontWeight: '900', color: '#FFFFFF', marginTop: 12, letterSpacing: -0.5 }}>
-                      250 000 <Text style={{ fontSize: 16, fontWeight: '700', color: C.lime }}>FCFA</Text>
-                    </Text>
-                    <Text style={{ fontSize: 11, color: '#C8E6D8', marginTop: 4 }}>
-                      ≈ 0.00588 BTC · 385 USDT en cours
-                    </Text>
+                    <Text style={s.heroTitle}>{t.heroTitle}</Text>
+                    <Text style={s.heroSub}>{t.heroSub}</Text>
                     <Pressable
                       style={s.primaryButton}
                       onPress={() => {
@@ -1047,10 +1044,10 @@ export default function Home() {
                   </View>
                   <View style={s.settingsProfileInfo}>
                     <Text style={s.settingsProfileName}>
-                      {token ? 'Utilisateur Afribuild' : 'Session Démonstration'}
+                      {token ? 'Utilisateur Afribuild' : 'Session Invité'}
                     </Text>
                     <Text style={s.settingsProfileSub}>
-                      {token ? 'Compte actif · Session vérifiée' : 'Mode démonstration'}
+                      {token ? 'Compte vérifié · Opérations en direct' : 'Mode direct actif'}
                     </Text>
                   </View>
                   {token ? (

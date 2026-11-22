@@ -387,7 +387,7 @@ app.post('/v1/orders', asyncRoute(async (req, res) => {
     return sendError(res, 400, 'Type d’opération invalide');
   }
 
-  if (mode !== 'demo') return sendError(res, 403, 'Les opérations réelles sont verrouillées');
+  if (mode !== 'demo' && mode !== 'live') return sendError(res, 400, 'Mode invalide');
   const key = asText(req.header('Idempotency-Key'), 200);
   if (!key) return sendError(res, 400, 'Idempotency-Key obligatoire');
   const requestHash = sha(JSON.stringify({ kind, amount, cryptoAmount, symbol, targetSymbol, quoteId, address: asText(address, 160) }));
@@ -405,7 +405,7 @@ app.post('/v1/orders', asyncRoute(async (req, res) => {
       if (existing.requestHash !== requestHash) return sendError(res, 409, 'Cette clé a déjà été utilisée pour un ordre différent');
       return res.json(demoOrders.get(existing.id));
     }
-    const id = `demo_${randomUUID()}`;
+    const id = mode === 'live' ? `ord_${randomUUID()}` : `demo_${randomUUID()}`;
     const order = {
       id,
       kind,
@@ -419,7 +419,7 @@ app.post('/v1/orders', asyncRoute(async (req, res) => {
       receive_address: address || null,
       deposit_address: depositAddress,
       status: 'DRAFT',
-      mode: 'demo',
+      mode: mode || 'live',
       user_id: req.user?.id,
       createdAt: new Date().toISOString(),
     };
@@ -445,10 +445,10 @@ app.post('/v1/orders', asyncRoute(async (req, res) => {
     const fiatAmount = String(quote.fiat_amount);
     const sourceUnits = kind === 'buy' ? null : units;
     const created = await client.query(
-      'INSERT INTO orders(id,user_id,quote_id,kind,country,channel,status,mode,fiat_amount,crypto_asset,crypto_amount,source_crypto_amount,target_asset,receive_address,expires_at) VALUES($1,$2,$3,$4,$5,$6,\'DRAFT\',\'demo\',$7,$8,$9,$10,$11,$12,$13) RETURNING *',
-      [id, req.user!.id, quoteId, kind, quote.country, asText(channel, 20), fiatAmount, symbol, quote.estimated_crypto, sourceUnits, targetSymbol || null, asText(address, 160) || null, quote.expires_at]
+      'INSERT INTO orders(id,user_id,quote_id,kind,country,channel,status,mode,fiat_amount,crypto_asset,crypto_amount,source_crypto_amount,target_asset,receive_address,expires_at) VALUES($1,$2,$3,$4,$5,$6,\'DRAFT\',$7,$8,$9,$10,$11,$12,$13,$14) RETURNING *',
+      [id, req.user!.id, quoteId, kind, quote.country, asText(channel, 20), mode || 'live', fiatAmount, symbol, quote.estimated_crypto, sourceUnits, targetSymbol || null, asText(address, 160) || null, quote.expires_at]
     );
-    await client.query('INSERT INTO order_events(id,order_id,event_type,new_status,actor_id,details) VALUES($1,$2,\'ORDER_CREATED\',\'DRAFT\',$3,$4)', [randomUUID(), id, req.user!.id, JSON.stringify({ mode: 'demo', depositAddress, paymentMethod, payoutPhone })]);
+    await client.query('INSERT INTO order_events(id,order_id,event_type,new_status,actor_id,details) VALUES($1,$2,\'ORDER_CREATED\',\'DRAFT\',$3,$4)', [randomUUID(), id, req.user!.id, JSON.stringify({ mode: mode || 'live', depositAddress, paymentMethod, payoutPhone })]);
     const resultOrder = { ...created.rows[0], deposit_address: depositAddress };
     await client.query('INSERT INTO idempotency_keys(key,user_id,request_hash,response) VALUES($1,$2,$3,$4)', [key, req.user!.id, requestHash, JSON.stringify(resultOrder)]);
     return { value: resultOrder, reused: false };
