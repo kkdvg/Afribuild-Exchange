@@ -41,6 +41,7 @@ export default function Home() {
   const [selectedAsset, setSelectedAsset] = useState<Asset>(ASSETS[0]);
   const [targetAsset, setTargetAsset] = useState<Asset>(ASSETS[1]);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(PAYMENT_METHODS[0]);
+  const [assetPickerTarget, setAssetPickerTarget] = useState<'source' | 'target' | null>(null);
 
   // Form inputs
   const [amountFiat, setAmountFiat] = useState('25000');
@@ -380,7 +381,7 @@ export default function Home() {
                   {tab === 'Accueil'
                     ? t.greetingTitle
                     : tab === 'Échanger'
-                    ? (kind === 'buy' ? t.tradeBuyTitle : kind === 'sell' ? t.tradeSellTitle : t.tradeSwapTitle)
+                    ? 'Échanger'
                     : tab === 'Activité'
                     ? t.activityTitle
                     : t.navSettings}
@@ -389,7 +390,7 @@ export default function Home() {
                   {tab === 'Accueil'
                     ? t.greetingSub
                     : tab === 'Échanger'
-                    ? t.tradeDesc
+                    ? 'Achetez, vendez et convertissez vos cryptos instantanément.'
                     : tab === 'Activité'
                     ? 'Historique et statut de vos opérations'
                     : 'Gérez votre profil, sécurité, assistance & préférences'}
@@ -567,9 +568,9 @@ export default function Home() {
               </>
             )}
 
-            {/* TAB: ÉCHANGER (Unified Trading Hub) */}
+            {/* TAB: ÉCHANGER (Modern Double-Card Trading Desk) */}
             {tab === 'Échanger' && (
-              <View>
+              <View style={s.tradeContainer}>
                 {/* Segmented Controller [ Acheter | Vendre | Swap ] */}
                 <View style={s.tradeSegment}>
                   <Pressable
@@ -603,94 +604,180 @@ export default function Home() {
                   </Pressable>
                 </View>
 
-                <View style={[s.tradeLayout, !isWide && s.tradeStack]}>
-                  {/* Trade Guide / Steps */}
-                  <View style={s.tradeIntro}>
-                    <Text style={s.eyebrow}>{t.brand} · {t.marketTogo}</Text>
-                    <Text style={s.tradeTitle}>
-                      {kind === 'buy' ? t.tradeBuyTitle : kind === 'sell' ? t.tradeSellTitle : t.tradeSwapTitle}
-                    </Text>
-                    <Text style={s.tradeDesc}>{t.tradeDesc}</Text>
-
-                    <View style={s.steps}>
-                      <View style={s.step}>
-                        <Text style={s.stepN}>01</Text>
-                        <Text style={s.stepText}>
-                          {kind === 'buy' ? t.step1Buy : kind === 'sell' ? t.step1Sell : t.step1Swap}
-                        </Text>
-                      </View>
-                      <View style={s.step}>
-                        <Text style={s.stepN}>02</Text>
-                        <Text style={s.stepText}>
-                          {kind === 'buy' ? t.step2Buy : kind === 'sell' ? t.step2Sell : t.step2Swap}
-                        </Text>
-                      </View>
-                      <View style={s.step}>
-                        <Text style={s.stepN}>03</Text>
-                        <Text style={s.stepText}>
-                          {kind === 'buy' ? t.step3Buy : kind === 'sell' ? t.step3Sell : t.step3Swap}
-                        </Text>
-                      </View>
+                {/* Main FinTech Exchange Card */}
+                <View style={s.tradeCard}>
+                  {/* 1. PAY / SEND BLOCK */}
+                  <View style={s.swapBox}>
+                    <View style={s.swapBoxHeader}>
+                      <Text style={s.swapBoxLabel}>
+                        {kind === 'buy' ? 'Vous payez' : kind === 'sell' ? 'Vous vendez' : 'Vous échangez'}
+                      </Text>
+                      <Text style={s.swapBoxBalance}>
+                        {kind === 'buy' ? 'Paiement Mobile' : `Réseau ${selectedAsset.network}`}
+                      </Text>
                     </View>
-                  </View>
 
-                  {/* Calculator & Order Form Card */}
-                  <View style={[s.quoteCard, !isWide && s.quoteCardNarrow]}>
-                    <Text style={s.quoteHeading}>
-                      {kind === 'buy' ? t.quoteHeadingBuy : kind === 'sell' ? t.quoteHeadingSell : t.quoteHeadingSwap}
-                    </Text>
-                    <Text style={s.quoteHint}>{t.indicativePrices}</Text>
-
-                    {/* Asset Picker (Source Asset) */}
-                    <Text style={s.selectorLabel}>{kind === 'swap' ? t.labelSelectSourceAsset : t.labelSelectAsset}</Text>
-                    <View style={s.chipGroup}>
-                      {ASSETS.map(asset => (
-                        <Pressable
-                          key={asset.symbol}
-                          onPress={() => {
-                            setSelectedAsset(asset);
+                    <View style={s.swapBoxRow}>
+                      {kind === 'buy' ? (
+                        <TextInput
+                          value={amountFiat}
+                          onChangeText={v => {
+                            setAmountFiat(v);
                             quoteAttempt.current = null;
                             idempotencyKey.current = null;
                           }}
-                          style={[s.chip, selectedAsset.symbol === asset.symbol && s.chipSelected]}
-                        >
-                          <View style={[s.chipBadge, { backgroundColor: asset.badgeColor || C.green }]} />
-                          <Text style={[s.chipText, selectedAsset.symbol === asset.symbol && s.chipTextSelected]}>
-                            {asset.symbol}
+                          keyboardType="number-pad"
+                          style={s.swapAmountInput}
+                          placeholder="25 000"
+                          placeholderTextColor={C.mutedLight}
+                        />
+                      ) : kind === 'sell' ? (
+                        <TextInput
+                          value={cryptoAmount}
+                          onChangeText={v => {
+                            setCryptoAmount(v);
+                            quoteAttempt.current = null;
+                            idempotencyKey.current = null;
+                          }}
+                          keyboardType="decimal-pad"
+                          style={s.swapAmountInput}
+                          placeholder="0.001"
+                          placeholderTextColor={C.mutedLight}
+                        />
+                      ) : (
+                        <TextInput
+                          value={swapSourceAmount}
+                          onChangeText={v => {
+                            setSwapSourceAmount(v);
+                            quoteAttempt.current = null;
+                            idempotencyKey.current = null;
+                          }}
+                          keyboardType="decimal-pad"
+                          style={s.swapAmountInput}
+                          placeholder="0.001"
+                          placeholderTextColor={C.mutedLight}
+                        />
+                      )}
+
+                      {/* Asset / Currency Pill */}
+                      {kind === 'buy' ? (
+                        <View style={s.swapAssetPill}>
+                          <Text style={s.swapAssetSymbol}>XOF</Text>
+                          <Text style={{ fontSize: 10, color: C.muted, fontWeight: '700' }}>FCFA</Text>
+                        </View>
+                      ) : (
+                        <Pressable onPress={() => setAssetPickerTarget('source')} style={s.swapAssetPill}>
+                          <Text style={[s.swapAssetGlyph, { color: selectedAsset.badgeColor || C.green }]}>
+                            {selectedAsset.glyph}
                           </Text>
+                          <Text style={s.swapAssetSymbol}>{selectedAsset.symbol}</Text>
+                          <Ionicons name="chevron-down" size={14} color={C.muted} />
                         </Pressable>
-                      ))}
+                      )}
                     </View>
 
-                    {/* If Swap: Target Asset Picker */}
-                    {kind === 'swap' && (
-                      <>
-                        <Text style={s.selectorLabel}>{t.labelSelectTargetAsset}</Text>
-                        <View style={s.chipGroup}>
-                          {ASSETS.filter(a => a.symbol !== selectedAsset.symbol).map(asset => (
-                            <Pressable
-                              key={asset.symbol}
-                              onPress={() => {
-                                setTargetAsset(asset);
-                                quoteAttempt.current = null;
-                                idempotencyKey.current = null;
-                              }}
-                              style={[s.chip, targetAsset.symbol === asset.symbol && s.chipSelected]}
-                            >
-                              <View style={[s.chipBadge, { backgroundColor: asset.badgeColor || C.green }]} />
-                              <Text style={[s.chipText, targetAsset.symbol === asset.symbol && s.chipTextSelected]}>
-                                {asset.symbol}
-                              </Text>
-                            </Pressable>
-                          ))}
-                        </View>
-                      </>
+                    {/* Quick amounts row for fiat buy */}
+                    {kind === 'buy' && (
+                      <View style={s.quickAmounts}>
+                        {[10000, 25000, 50000, 100000].map(v => (
+                          <Pressable
+                            key={v}
+                            onPress={() => {
+                              setAmountFiat(String(v));
+                              quoteAttempt.current = null;
+                              idempotencyKey.current = null;
+                            }}
+                            style={[s.quickChip, Number(amountFiat) === v && s.quickChipSelected]}
+                          >
+                            <Text style={[s.quickText, Number(amountFiat) === v && s.quickTextSelected]}>
+                              {fmt(v)}
+                            </Text>
+                          </Pressable>
+                        ))}
+                      </View>
                     )}
+                  </View>
 
-                    {/* Payment Method Picker (Buy & Sell) */}
+                  {/* Centered Floating Swap Arrow Button */}
+                  <View style={s.swapDivider}>
+                    <Pressable
+                      onPress={() => {
+                        if (kind === 'swap') {
+                          const temp = selectedAsset;
+                          setSelectedAsset(targetAsset);
+                          setTargetAsset(temp);
+                        } else if (kind === 'buy') {
+                          setKind('sell');
+                        } else {
+                          setKind('buy');
+                        }
+                      }}
+                      style={s.swapCircleBtn}
+                    >
+                      <Ionicons
+                        name={kind === 'swap' ? 'swap-vertical' : 'arrow-down'}
+                        size={16}
+                        color={C.green}
+                      />
+                    </Pressable>
+                  </View>
+
+                  {/* 2. RECEIVE / DESTINATION BLOCK */}
+                  <View style={s.swapBox}>
+                    <View style={s.swapBoxHeader}>
+                      <Text style={s.swapBoxLabel}>
+                        {kind === 'buy' ? 'Vous recevez (estimé)' : kind === 'sell' ? 'Vous recevez (net)' : 'Vous recevez (estimé)'}
+                      </Text>
+                      <Text style={s.swapBoxBalance}>
+                        {kind === 'sell' ? 'Mobile Money' : `Réseau ${kind === 'swap' ? targetAsset.network : selectedAsset.network}`}
+                      </Text>
+                    </View>
+
+                    <View style={s.swapBoxRow}>
+                      <Text style={s.swapAmountInput} numberOfLines={1}>
+                        {kind === 'buy' && liveQuote
+                          ? `${liveQuote.estimatedAsset.toFixed(selectedAsset.decimals > 8 ? 6 : selectedAsset.decimals)}`
+                          : kind === 'sell' && liveQuote
+                          ? `${fmt(liveQuote.estimatedFiat || 0)}`
+                          : kind === 'swap' && liveQuote
+                          ? `${liveQuote.estimatedAsset.toFixed(targetAsset.decimals > 8 ? 6 : targetAsset.decimals)}`
+                          : '0.00'}
+                      </Text>
+
+                      {/* Receive Asset Pill */}
+                      {kind === 'sell' ? (
+                        <View style={s.swapAssetPill}>
+                          <Text style={s.swapAssetSymbol}>XOF</Text>
+                          <Text style={{ fontSize: 10, color: C.muted, fontWeight: '700' }}>FCFA</Text>
+                        </View>
+                      ) : kind === 'buy' ? (
+                        <Pressable onPress={() => setAssetPickerTarget('source')} style={s.swapAssetPill}>
+                          <Text style={[s.swapAssetGlyph, { color: selectedAsset.badgeColor || C.green }]}>
+                            {selectedAsset.glyph}
+                          </Text>
+                          <Text style={s.swapAssetSymbol}>{selectedAsset.symbol}</Text>
+                          <Ionicons name="chevron-down" size={14} color={C.muted} />
+                        </Pressable>
+                      ) : (
+                        <Pressable onPress={() => setAssetPickerTarget('target')} style={s.swapAssetPill}>
+                          <Text style={[s.swapAssetGlyph, { color: targetAsset.badgeColor || C.green }]}>
+                            {targetAsset.glyph}
+                          </Text>
+                          <Text style={s.swapAssetSymbol}>{targetAsset.symbol}</Text>
+                          <Ionicons name="chevron-down" size={14} color={C.muted} />
+                        </Pressable>
+                      )}
+                    </View>
+                  </View>
+
+                  {/* 3. PAYMENT & RECIPIENT SETTINGS */}
+                  <View style={{ marginTop: 14 }}>
+                    {/* Payment Method Pills (Buy & Sell) */}
                     {(kind === 'buy' || kind === 'sell') && (
-                      <>
-                        <Text style={s.selectorLabel}>{kind === 'buy' ? t.labelPaymentMethod : t.labelPayoutMethod}</Text>
+                      <View style={{ marginBottom: 12 }}>
+                        <Text style={s.selectorLabel}>
+                          {kind === 'buy' ? 'Moyen de paiement' : 'Réception Mobile Money'}
+                        </Text>
                         <View style={s.chipGroup}>
                           {PAYMENT_METHODS.map(method => (
                             <Pressable
@@ -705,47 +792,17 @@ export default function Home() {
                             </Pressable>
                           ))}
                         </View>
-                      </>
+                      </View>
                     )}
 
-                    {/* Amount Input */}
-                    {kind === 'buy' ? (
-                      <>
-                        <View style={s.inputWrap}>
-                          <TextInput
-                            value={amountFiat}
-                            onChangeText={v => {
-                              setAmountFiat(v);
-                              quoteAttempt.current = null;
-                              idempotencyKey.current = null;
-                            }}
-                            keyboardType="number-pad"
-                            style={s.amountInput}
-                            placeholder="25 000"
-                            placeholderTextColor={C.muted}
-                          />
-                          <Text style={s.inputUnit}>FCFA</Text>
-                        </View>
-
-                        <View style={s.quickAmounts}>
-                          {[10000, 25000, 50000, 100000].map(v => (
-                            <Pressable
-                              key={v}
-                              onPress={() => {
-                                setAmountFiat(String(v));
-                                quoteAttempt.current = null;
-                                idempotencyKey.current = null;
-                              }}
-                              style={[s.quickChip, Number(amountFiat) === v && s.quickChipSelected]}
-                            >
-                              <Text style={[s.quickText, Number(amountFiat) === v && s.quickTextSelected]}>
-                                {fmt(v)}
-                              </Text>
-                            </Pressable>
-                          ))}
-                        </View>
-
-                        {/* Receive Address Input */}
+                    {/* Receive Crypto Address (Buy & Swap) */}
+                    {(kind === 'buy' || kind === 'swap') && (
+                      <View>
+                        <Text style={s.selectorLabel}>
+                          {kind === 'buy'
+                            ? `Adresse de réception (${selectedAsset.symbol} · ${selectedAsset.network})`
+                            : `Adresse de réception (${targetAsset.symbol} · ${targetAsset.network})`}
+                        </Text>
                         <TextInput
                           value={receiveAddress}
                           onChangeText={v => {
@@ -754,160 +811,119 @@ export default function Home() {
                             idempotencyKey.current = null;
                           }}
                           autoCapitalize="none"
-                          placeholder={`${t.labelReceiveAddress} (${selectedAsset.network})`}
+                          placeholder={`Collez votre adresse ${kind === 'swap' ? targetAsset.symbol : selectedAsset.symbol}`}
                           placeholderTextColor={C.muted}
                           style={s.addressInput}
                         />
                         {addressValidation && (
-                          <Text style={{ fontSize: 10, color: addressValidation.valid ? C.green : C.danger, marginTop: 4 }}>
+                          <Text
+                            style={{
+                              fontSize: 10,
+                              color: addressValidation.valid ? C.green : C.danger,
+                              marginTop: 4,
+                              fontWeight: '600',
+                            }}
+                          >
                             {addressValidation.valid ? '✓ Adresse syntaxiquement valide' : addressValidation.error}
                           </Text>
                         )}
-                      </>
-                    ) : kind === 'sell' ? (
-                      <>
-                        <View style={s.inputWrap}>
-                          <TextInput
-                            value={cryptoAmount}
-                            onChangeText={v => {
-                              setCryptoAmount(v);
-                              quoteAttempt.current = null;
-                              idempotencyKey.current = null;
-                            }}
-                            keyboardType="decimal-pad"
-                            style={s.amountInput}
-                            placeholder="0.001"
-                            placeholderTextColor={C.muted}
-                          />
-                          <Text style={s.inputUnit}>{selectedAsset.symbol}</Text>
-                        </View>
-
-                        {/* Mobile Money Payout Coordinates */}
-                        <TextInput
-                          value={payoutPhone}
-                          onChangeText={setPayoutPhone}
-                          keyboardType="phone-pad"
-                          placeholder={t.labelMobileNumber}
-                          placeholderTextColor={C.muted}
-                          style={s.addressInput}
-                        />
-                        <TextInput
-                          value={payoutName}
-                          onChangeText={setPayoutName}
-                          placeholder={t.labelMobileName}
-                          placeholderTextColor={C.muted}
-                          style={s.addressInput}
-                        />
-                      </>
-                    ) : (
-                      // SWAP
-                      <>
-                        <View style={s.inputWrap}>
-                          <TextInput
-                            value={swapSourceAmount}
-                            onChangeText={v => {
-                              setSwapSourceAmount(v);
-                              quoteAttempt.current = null;
-                              idempotencyKey.current = null;
-                            }}
-                            keyboardType="decimal-pad"
-                            style={s.amountInput}
-                            placeholder="0.001"
-                            placeholderTextColor={C.muted}
-                          />
-                          <Text style={s.inputUnit}>{selectedAsset.symbol}</Text>
-                        </View>
-
-                        {/* Target Crypto Receiving Address */}
-                        <TextInput
-                          value={receiveAddress}
-                          onChangeText={v => {
-                            setReceiveAddress(v);
-                            quoteAttempt.current = null;
-                            idempotencyKey.current = null;
-                          }}
-                          autoCapitalize="none"
-                          placeholder={`${t.labelReceiveAddress} (${targetAsset.symbol} - ${targetAsset.network})`}
-                          placeholderTextColor={C.muted}
-                          style={s.addressInput}
-                        />
-                        {addressValidation && (
-                          <Text style={{ fontSize: 10, color: addressValidation.valid ? C.green : C.danger, marginTop: 4 }}>
-                            {addressValidation.valid ? '✓ Adresse de destination valide' : addressValidation.error}
-                          </Text>
-                        )}
-                      </>
+                      </View>
                     )}
 
-                    {/* Quote Breakdown */}
-                    <View style={s.quoteDivider} />
-                    <View style={s.quoteRow}>
-                      <Text style={s.quoteLabel}>{t.labelRate}</Text>
-                      <Text style={s.quoteValue}>
+                    {/* Mobile Money Coordinates (Sell) */}
+                    {kind === 'sell' && (
+                      <View style={{ gap: 8 }}>
+                        <View>
+                          <Text style={s.selectorLabel}>Numéro Mobile Money (+228...)</Text>
+                          <TextInput
+                            value={payoutPhone}
+                            onChangeText={setPayoutPhone}
+                            keyboardType="phone-pad"
+                            placeholder="+228 90 00 00 00"
+                            placeholderTextColor={C.muted}
+                            style={s.addressInput}
+                          />
+                        </View>
+                        <View>
+                          <Text style={s.selectorLabel}>Nom du titulaire du compte</Text>
+                          <TextInput
+                            value={payoutName}
+                            onChangeText={setPayoutName}
+                            placeholder="Ex: Jean Koffi"
+                            placeholderTextColor={C.muted}
+                            style={s.addressInput}
+                          />
+                        </View>
+                      </View>
+                    )}
+                  </View>
+
+                  {/* 4. TRANSPARENT SUMMARY */}
+                  <View style={s.tradeSummaryCard}>
+                    <View style={s.tradeSummaryRow}>
+                      <Text style={s.tradeSummaryLabel}>Taux de conversion</Text>
+                      <Text style={s.tradeSummaryValue}>
                         {kind === 'swap'
                           ? `1 ${selectedAsset.symbol} ≈ ${liveQuote?.indicativeRate ? liveQuote.indicativeRate.toFixed(4) : '?'} ${targetAsset.symbol}`
                           : `1 ${selectedAsset.symbol} = ${fmt(selectedAsset.priceXof)} XOF`}
                       </Text>
                     </View>
-                    <View style={s.quoteRow}>
-                      <Text style={s.quoteLabel}>{t.labelFees}</Text>
-                      <Text style={s.quoteValue}>
-                        {liveQuote ? `${fmt(liveQuote.feeFiat)} XOF` : '—'}
-                      </Text>
-                    </View>
-                    <View style={s.quoteRow}>
-                      <Text style={s.quoteLabel}>{t.labelReceiveEst}</Text>
-                      <Text style={[s.quoteValue, s.quoteStrong]}>
-                        {kind === 'buy' && liveQuote
-                          ? `${liveQuote.estimatedAsset.toFixed(selectedAsset.decimals > 8 ? 6 : selectedAsset.decimals)} ${selectedAsset.symbol}`
-                          : kind === 'sell' && liveQuote
-                          ? `${fmt(liveQuote.estimatedFiat || 0)} XOF`
-                          : kind === 'swap' && liveQuote
-                          ? `${liveQuote.estimatedAsset.toFixed(targetAsset.decimals > 8 ? 6 : targetAsset.decimals)} ${targetAsset.symbol}`
-                          : '—'}
+
+                    <View style={s.tradeSummaryRow}>
+                      <Text style={s.tradeSummaryLabel}>Frais de service & réseau</Text>
+                      <Text style={s.tradeSummaryHighlight}>
+                        {liveQuote ? `${fmt(liveQuote.feeFiat)} XOF (Inclus)` : 'Inclus'}
                       </Text>
                     </View>
 
-                    <Pressable
-                      onPress={submitOrder}
-                      disabled={busy || !liveQuote}
-                      style={[s.primaryButton, s.quoteButton, (busy || !liveQuote) && { opacity: 0.7 }]}
-                    >
-                      {busy ? (
-                        <ActivityIndicator color={C.limeDark} />
-                      ) : (
-                        <>
-                          <Text style={s.primaryButtonText}>{t.btnCreateOrderDemo}</Text>
-                          <Ionicons name="arrow-forward" size={18} color={C.limeDark} />
-                        </>
-                      )}
-                    </Pressable>
-
-                    <Text style={s.disclaimer}>{t.disclaimerDemo}</Text>
-
-                    {!!notice && (
-                      <Text
-                        style={[
-                          s.notice,
-                          notice.type === 'error' && { color: C.danger },
-                          notice.type === 'info' && { color: C.blue },
-                        ]}
-                      >
-                        {notice.text}
-                      </Text>
-                    )}
-
-                    {authRequired && !token && (
-                      <View style={{ marginTop: 12 }}>
-                        <AuthPanel
-                          onAuthenticated={tkn => {
-                            setToken(tkn);
-                            setAuthRequired(false);
-                          }}
-                        />
-                      </View>
-                    )}
+                    <View style={s.tradeSummaryRow}>
+                      <Text style={s.tradeSummaryLabel}>Délai estimé</Text>
+                      <Text style={s.tradeSummaryValue}>~ 2 à 5 minutes</Text>
+                    </View>
                   </View>
+
+                  {/* 5. MAIN ACTION BUTTON */}
+                  <Pressable
+                    onPress={submitOrder}
+                    disabled={busy || !liveQuote}
+                    style={[s.primaryButton, s.quoteButton, (busy || !liveQuote) && { opacity: 0.7 }]}
+                  >
+                    {busy ? (
+                      <ActivityIndicator color={C.limeDark} />
+                    ) : (
+                      <>
+                        <Text style={s.primaryButtonText}>
+                          {kind === 'buy' ? 'Acheter maintenant' : kind === 'sell' ? 'Vendre maintenant' : 'Confirmer le swap'}
+                        </Text>
+                        <Ionicons name="arrow-forward" size={18} color={C.limeDark} />
+                      </>
+                    )}
+                  </Pressable>
+
+                  <Text style={s.disclaimer}>{t.disclaimerDemo}</Text>
+
+                  {!!notice && (
+                    <Text
+                      style={[
+                        s.notice,
+                        notice.type === 'error' && { color: C.danger },
+                        notice.type === 'info' && { color: C.blue },
+                      ]}
+                    >
+                      {notice.text}
+                    </Text>
+                  )}
+
+                  {authRequired && !token && (
+                    <View style={{ marginTop: 12 }}>
+                      <AuthPanel
+                        onAuthenticated={tkn => {
+                          setToken(tkn);
+                          setAuthRequired(false);
+                        }}
+                      />
+                    </View>
+                  )}
                 </View>
               </View>
             )}
@@ -1280,6 +1296,65 @@ export default function Home() {
           </View>
         )}
 
+        {/* MODAL: ASSET PICKER */}
+        {!!assetPickerTarget && (
+          <Modal transparent animationType="fade" visible={!!assetPickerTarget}>
+            <View style={s.modalOverlay}>
+              <View style={s.modalSheet}>
+                <View style={s.modalHeader}>
+                  <Text style={s.modalTitle}>
+                    {assetPickerTarget === 'source' ? 'Choisir la crypto' : 'Choisir la crypto de destination'}
+                  </Text>
+                  <Pressable onPress={() => setAssetPickerTarget(null)}>
+                    <Ionicons name="close-circle-outline" size={26} color={C.muted} />
+                  </Pressable>
+                </View>
+
+                {ASSETS.map(asset => {
+                  const isCurrent =
+                    (assetPickerTarget === 'source' ? selectedAsset.symbol : targetAsset.symbol) === asset.symbol;
+                  return (
+                    <Pressable
+                      key={asset.symbol}
+                      onPress={() => {
+                        if (assetPickerTarget === 'source') {
+                          setSelectedAsset(asset);
+                        } else {
+                          setTargetAsset(asset);
+                        }
+                        setAssetPickerTarget(null);
+                        quoteAttempt.current = null;
+                        idempotencyKey.current = null;
+                      }}
+                      style={[
+                        s.settingsRow,
+                        {
+                          paddingVertical: 12,
+                          backgroundColor: isCurrent ? C.greenLight : '#FFFFFF',
+                          borderRadius: 12,
+                          marginBottom: 6,
+                          borderBottomWidth: 0,
+                        },
+                      ]}
+                    >
+                      <View style={[s.settingsIconBox, { backgroundColor: `${asset.badgeColor}22` }]}>
+                        <Text style={[s.swapAssetGlyph, { color: asset.badgeColor }]}>{asset.glyph}</Text>
+                      </View>
+                      <View style={s.settingsRowContent}>
+                        <Text style={s.settingsRowTitle}>{asset.name}</Text>
+                        <Text style={s.settingsRowDesc}>{asset.symbol} · Réseau {asset.network}</Text>
+                      </View>
+                      <Text style={{ fontSize: 13, fontWeight: '800', color: C.ink }}>
+                        {fmt(asset.priceXof)} XOF
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+          </Modal>
+        )}
+
         {/* MODAL 1: AUTHENTICATION / LOGIN */}
         {authModalVisible && (
           <Modal transparent animationType="fade" visible={authModalVisible}>
@@ -1585,18 +1660,10 @@ export default function Home() {
         {/* Order Details & Receipt Modal */}
         {selectedOrder && (
           <Modal transparent animationType="fade" visible={!!selectedOrder}>
-            <View
-              style={{
-                flex: 1,
-                backgroundColor: 'rgba(0,0,0,0.5)',
-                justifyContent: 'center',
-                alignItems: 'center',
-                padding: 16,
-              }}
-            >
-              <View style={[s.quoteCard, { maxWidth: 500, width: '100%' }]}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Text style={s.quoteHeading}>{t.orderReceipt}</Text>
+            <View style={s.modalOverlay}>
+              <View style={s.modalSheet}>
+                <View style={s.modalHeader}>
+                  <Text style={s.modalTitle}>{t.orderReceipt}</Text>
                   <Pressable onPress={() => setSelectedOrder(null)}>
                     <Ionicons name="close-circle-outline" size={26} color={C.muted} />
                   </Pressable>
