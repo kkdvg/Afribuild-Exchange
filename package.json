@@ -1,0 +1,16 @@
+{
+  "name": "afribuild-exchange",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": ["apps/*", "packages/*"],
+  "scripts": {
+    "start": "npm run start --workspace @skalet/app",
+    "web": "npm run web --workspace @skalet/app",
+    "build:web": "npm run build:web --workspace @skalet/app",
+    "android": "npm run android --workspace @skalet/app",
+    "api": "npm run dev --workspace @skalet/api",
+    "api:start": "npm run start --workspace @skalet/api",
+    "migrate": "npm run migrate --workspace @skalet/api",
+    "typecheck": "npm run typecheck --workspace @skalet/app && npm run typecheck --workspace @skalet/api"
+  }
+}

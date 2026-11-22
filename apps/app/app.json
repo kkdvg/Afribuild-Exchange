@@ -1,0 +1,18 @@
+{
+  "expo": {
+    "name": "Afribuild-Exchange",
+    "slug": "afribuild-exchange",
+    "scheme": "afribuild",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "plugins": ["expo-router"],
+    "experiments": { "typedRoutes": true },
+    "web": {
+      "bundler": "metro",
+      "name": "Afribuild-Exchange",
+      "shortName": "Afribuild"
+    }
+  }
+}
